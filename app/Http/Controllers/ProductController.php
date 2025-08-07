@@ -57,49 +57,66 @@ class ProductController extends Controller
      * Display the specified resource.
      */
     public function show($slug)
-    {
-        $product = Product::with(['category', 'reviews.user'])
-            ->where('slug', $slug)
-            ->firstOrFail();
+{
+    $product = Product::with(['category', 'reviews.user'])
+        ->where('slug', $slug)
+        ->firstOrFail();
 
-        $productData = [
-            'id' => $product->id,
-            'name' => $product->name,
-            'slug' => $product->slug,
-            'description' => $product->description,
-            'price' => $product->price,
-            'old_price' => $product->old_price,
-            'image_url' => asset('images/produits/' . $product->image),
-            'category' => $product->category ? [
-                'id' => $product->category->id,
-                'name' => $product->category->name,
-                'slug' => $product->category->slug,
-            ] : null,
-            'reviews' => $product->reviews->map(function ($review) {
-                return [
-                    'id' => $review->id,
-                    'rating' => $review->rating,
-                    'comment' => $review->comment,
-                    'created_at' => $review->created_at,
-                    'user' => [
-                        'id' => $review->user->id,
-                        'name' => $review->user->name,
-                    ],
-                ];
-            }),
+    $productData = [
+        'id' => $product->id,
+        'name' => $product->name,
+        'slug' => $product->slug,
+        'description' => $product->description,
+        'price' => $product->price,
+        'old_price' => $product->old_price,
+        'image_url' => asset('images/produits/' . $product->image),
+        'category' => $product->category ? [
+            'id' => $product->category->id,
+            'name' => $product->category->name,
+            'slug' => $product->category->slug,
+        ] : null,
+        'reviews' => $product->reviews->map(function ($review) {
+            return [
+                'id' => $review->id,
+                'rating' => $review->rating,
+                'comment' => $review->comment,
+                'created_at' => $review->created_at,
+                'user' => [
+                    'id' => $review->user->id,
+                    'name' => $review->user->name,
+                ],
+            ];
+        }),
+        'is_favorite' => auth()->check()
+            ? auth()->user()->favorites->contains($product->id)
+            : false,
+        'reviews_count' => $product->reviews()->count(),
+        'average_rating' => round($product->reviews()->avg('rating') ?? 0, 1),
+    ];
 
-            'is_favorite' => auth()->check()
-                ? auth()->user()->favorites->contains($product->id)
-                : false,
+    // ✅ Produits similaires (même catégorie, excluant le produit actuel)
+    $similarProducts = Product::where('category_id', $product->category_id)
+        ->where('id', '!=', $product->id)
+        ->latest()
+        ->take(4)
+        ->get()
+        ->map(function ($similar) {
+            return [
+                'id' => $similar->id,
+                'name' => $similar->name,
+                'slug' => $similar->slug,
+                'price' => $similar->price,
+                'old_price' => $similar->old_price,
+                'image_url' => asset('images/produits/' . $similar->image),
+            ];
+        });
 
-            'reviews_count' => $product->reviews()->count(),
-            'average_rating' => round($product->reviews()->avg('rating') ?? 0, 1),
-        ];
+    return Inertia::render('Products/Show', [
+        'product' => $productData,
+        'similarProducts' => $similarProducts,
+    ]);
+}
 
-        return Inertia::render('Products/Show', [
-            'product' => $productData,
-        ]);
-    }
 
     /**
      * Show the form for editing the specified resource.

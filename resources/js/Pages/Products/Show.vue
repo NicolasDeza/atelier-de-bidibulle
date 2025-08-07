@@ -1,10 +1,12 @@
 <script setup>
 import { Link, router, usePage } from "@inertiajs/vue3";
-import PublicLayout from "@/Layouts/PublicLayout.vue";
 import { ref, computed } from "vue";
+import PublicLayout from "@/Layouts/PublicLayout.vue";
+import SimilarProducts from "@/Components/SimilarProducts.vue";
 
 const props = defineProps({
     product: Object,
+    similarProducts: Array,
 });
 
 const page = usePage();
@@ -144,6 +146,8 @@ const deleteReview = (id) => {
         onSuccess: () => alert("Avis supprimé avec succès"),
     });
 };
+
+// Section produit similaire
 </script>
 
 <template>
@@ -400,6 +404,10 @@ const deleteReview = (id) => {
             <p v-else class="text-center text-gray-500 mt-6">
                 Connectez-vous pour laisser un avis.
             </p>
+        </section>
+
+        <section class="mt-20">
+            <SimilarProducts :products="props.similarProducts" />
         </section>
     </PublicLayout>
 </template>
