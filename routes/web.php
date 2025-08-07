@@ -27,12 +27,10 @@ Route::post('/wishlist/toggle/{productId}', [WishlistController::class, 'toggle'
 // Routes pour le panier
 Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
 
-// Supprimer un avis
-Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
-
 
 // Routes pour les avis
 Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
+Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
 
 
 // Routes pour les catégories

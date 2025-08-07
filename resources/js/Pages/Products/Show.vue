@@ -1,7 +1,7 @@
 <script setup>
 import { Link, router, usePage } from "@inertiajs/vue3";
 import PublicLayout from "@/Layouts/PublicLayout.vue";
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 const props = defineProps({
     product: Object,
@@ -10,6 +10,37 @@ const props = defineProps({
 const page = usePage();
 const newReview = ref("");
 const newRating = ref("");
+
+//  Fonction pour gérer les étoiles
+const getStars = (rating) => {
+    return "★".repeat(rating) + "☆".repeat(5 - rating);
+};
+
+// Avis du formulaire
+const showReviewForm = ref(false);
+const visibleReviewsCount = ref(3);
+
+// Computed pour gérer les avis visibles
+const visibleReviews = computed(() =>
+    props.product.reviews.slice(0, visibleReviewsCount.value)
+);
+
+const hasMoreReviews = computed(
+    () => props.product.reviews.length > visibleReviewsCount.value
+);
+
+const canShowLess = computed(
+    () => visibleReviewsCount.value > 3 && props.product.reviews.length > 3
+);
+
+// Fonctions pour gérer l'affichage des avis
+const showMoreReviews = () => {
+    visibleReviewsCount.value += 3;
+};
+
+const showLessReviews = () => {
+    visibleReviewsCount.value = 3;
+};
 
 // Bouton pour quantité
 const quantity = ref(1);
@@ -38,7 +69,7 @@ const toggleFavorite = () => {
                 if (flashData) {
                     isFavorite.value = flashData.status === "added";
                 } else {
-                    // Fallback simple si pas de flash data
+                    // Fallback simple si y'a pas de flash data
                     isFavorite.value = !isFavorite.value;
                 }
             },
@@ -96,6 +127,7 @@ const submitReview = () => {
                 alert("Merci pour votre avis !");
                 newReview.value = "";
                 newRating.value = "";
+                showReviewForm.value = false;
             },
             onError: () => {
                 alert("Erreur lors de l'envoi de l'avis.");
@@ -148,13 +180,8 @@ const deleteReview = (id) => {
                     >
                         <div class="text-yellow-400 mr-2 text-lg">
                             {{
-                                "★".repeat(
+                                getStars(
                                     Math.round(props.product.average_rating)
-                                )
-                            }}
-                            {{
-                                "☆".repeat(
-                                    5 - Math.round(props.product.average_rating)
                                 )
                             }}
                         </div>
@@ -269,25 +296,23 @@ const deleteReview = (id) => {
                 Avis sur ce produit
             </h2>
 
-            <!--  Liste des avis -->
+            <!-- Liste des avis -->
             <div v-if="props.product.reviews.length" class="space-y-6">
                 <div
-                    v-for="review in props.product.reviews"
+                    v-for="review in visibleReviews"
                     :key="review.id"
                     class="bg-white shadow-md rounded-lg p-4 border border-gray-100"
                 >
                     <div class="flex justify-between items-center mb-2">
                         <div class="flex items-center">
                             <span class="text-yellow-400 text-lg mr-2">
-                                {{ "★".repeat(review.rating) }}
-                                {{ "☆".repeat(5 - review.rating) }}
+                                {{ getStars(review.rating) }}
                             </span>
                             <span class="text-sm font-medium text-gray-700">
                                 {{ review.user.name }}
                             </span>
                         </div>
 
-                        <!--  Supprimer uniquement pour l'auteur -->
                         <button
                             v-if="page.props.auth?.user?.id === review.user.id"
                             @click="deleteReview(review.id)"
@@ -297,15 +322,31 @@ const deleteReview = (id) => {
                         </button>
                     </div>
 
-                    <!-- Date -->
                     <span class="text-xs text-gray-400">
                         {{ new Date(review.created_at).toLocaleDateString() }}
                     </span>
 
-                    <!-- Commentaire -->
                     <p class="text-gray-700 leading-relaxed mt-2">
                         {{ review.comment }}
                     </p>
+                </div>
+
+                <!-- Boutons Voir plus / Voir moins -->
+                <div class="text-center">
+                    <button
+                        v-if="hasMoreReviews"
+                        @click="showMoreReviews"
+                        class="mt-4 px-6 py-2 bg-bidibordeaux text-white rounded hover:bg-rose-800 transition"
+                    >
+                        Voir plus d'avis
+                    </button>
+                    <button
+                        v-if="canShowLess"
+                        @click="showLessReviews"
+                        class="mt-4 ml-2 px-6 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition"
+                    >
+                        Voir moins
+                    </button>
                 </div>
             </div>
 
@@ -314,39 +355,48 @@ const deleteReview = (id) => {
                 Aucun avis pour le moment.
             </p>
 
-            <!--  Formulaire ajout d'avis -->
-            <div
-                v-if="page.props.auth?.user"
-                class="mt-10 bg-gray-50 p-5 rounded-lg shadow-inner border"
-            >
-                <h3 class="text-lg font-semibold mb-3">Laissez un avis</h3>
-
-                <textarea
-                    v-model="newReview"
-                    rows="3"
-                    placeholder="Votre avis..."
-                    class="w-full border border-gray-300 rounded px-3 py-2 mb-3 focus:ring focus:ring-bidibordeaux focus:border-bidibordeaux"
-                ></textarea>
-
-                <select
-                    v-model="newRating"
-                    class="border border-gray-300 rounded px-2 py-2 mb-3 w-full focus:ring focus:ring-bidibordeaux"
-                >
-                    <option disabled value="">Sélectionnez une note</option>
-                    <option v-for="n in 5" :key="n" :value="n">
-                        {{ n }} ★
-                    </option>
-                </select>
-
+            <!-- Formulaire ajout d'avis -->
+            <div v-if="page.props.auth?.user" class="mt-10">
                 <button
-                    @click="submitReview"
-                    class="bg-bidibordeaux hover:bg-rose-800 text-white font-bold px-5 py-2 rounded w-full"
+                    @click="showReviewForm = !showReviewForm"
+                    class="mb-4 px-4 py-2 bg-bidibordeaux text-white rounded hover:bg-rose-800 transition"
                 >
-                    Envoyer mon avis
+                    {{ showReviewForm ? "Annuler" : "Laisser un avis" }}
                 </button>
+
+                <div
+                    v-if="showReviewForm"
+                    class="bg-gray-50 p-5 rounded-lg shadow-inner border"
+                >
+                    <h3 class="text-lg font-semibold mb-3">Laissez un avis</h3>
+
+                    <textarea
+                        v-model="newReview"
+                        rows="3"
+                        placeholder="Votre avis..."
+                        class="w-full border border-gray-300 rounded px-3 py-2 mb-3 focus:ring focus:ring-bidibordeaux focus:border-bidibordeaux"
+                    ></textarea>
+
+                    <select
+                        v-model="newRating"
+                        class="border border-gray-300 rounded px-2 py-2 mb-3 w-full focus:ring focus:ring-bidibordeaux"
+                    >
+                        <option disabled value="">Sélectionnez une note</option>
+                        <option v-for="n in 5" :key="n" :value="n">
+                            {{ n }} ★
+                        </option>
+                    </select>
+
+                    <button
+                        @click="submitReview"
+                        class="bg-bidibordeaux hover:bg-rose-800 text-white font-bold px-5 py-2 rounded w-full"
+                    >
+                        Envoyer mon avis
+                    </button>
+                </div>
             </div>
 
-            <!--  Message si non connecté -->
+            <!-- Message si non connecté -->
             <p v-else class="text-center text-gray-500 mt-6">
                 Connectez-vous pour laisser un avis.
             </p>
