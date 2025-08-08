@@ -4,112 +4,40 @@ import { ref, computed } from "vue";
 import PublicLayout from "@/Layouts/PublicLayout.vue";
 import SimilarProducts from "@/Components/SimilarProducts.vue";
 
+const page = usePage();
 const props = defineProps({
     product: Object,
     similarProducts: Array,
 });
 
-const page = usePage();
-
 const newReview = ref("");
 const newRating = ref("");
+const showReviewForm = ref(false);
 
-//  Fonction pour gérer les étoiles
+//  Etoiles
 const getStars = (rating) => {
     return "★".repeat(rating) + "☆".repeat(5 - rating);
 };
 
-// Avis du formulaire
-const showReviewForm = ref(false);
-const visibleReviewsCount = ref(3);
+// Avis du formulaire visibles
 
-// Computed pour gérer les avis visibles
+const visibleReviewsCount = ref(3);
 const visibleReviews = computed(() =>
     props.product.reviews.slice(0, visibleReviewsCount.value)
 );
-
 const hasMoreReviews = computed(
     () => props.product.reviews.length > visibleReviewsCount.value
 );
-
 const canShowLess = computed(
     () => visibleReviewsCount.value > 3 && props.product.reviews.length > 3
 );
 
-// Fonctions pour gérer l'affichage des avis
 const showMoreReviews = () => {
     visibleReviewsCount.value += 3;
 };
-
 const showLessReviews = () => {
     visibleReviewsCount.value = 3;
 };
-
-// Bouton pour quantité
-const quantity = ref(1);
-
-const increment = () => {
-    quantity.value++;
-};
-
-const decrement = () => {
-    if (quantity.value > 1) {
-        quantity.value--;
-    }
-};
-
-// Bouton favoris
-const isFavorite = ref(!!props.product.is_favorite);
-
-const toggleFavorite = () => {
-    router.post(
-        route("wishlist.toggle", props.product.id),
-        {},
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                const flashData = page.props.flash?.favoriteToggled;
-                if (flashData) {
-                    isFavorite.value = flashData.status === "added";
-                } else {
-                    // Fallback simple si y'a pas de flash data
-                    isFavorite.value = !isFavorite.value;
-                }
-            },
-            onError: (errors) => {
-                console.error("Erreur favoris:", errors);
-                alert("Une erreur est survenue");
-            },
-        }
-    );
-};
-// Champ de personnalisation
-const customization = ref("");
-
-// Fonction pour ajouter au panier
-const addToCart = () => {
-    router.post(
-        route("cart.add"),
-        {
-            product_id: props.product.id,
-            quantity: quantity.value,
-            customization: customization.value,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                customization.value = ""; // reset champ
-                alert("Produit ajouté au panier !");
-            },
-            onError: (errors) => {
-                console.error("Erreur ajout panier:", errors);
-                alert("Impossible d'ajouter au panier");
-            },
-        }
-    );
-};
-
-// Fonction pour soumettre un avis
 
 const submitReview = () => {
     if (!newReview.value || !newRating.value) {
@@ -138,7 +66,6 @@ const submitReview = () => {
         }
     );
 };
-
 const deleteReview = (id) => {
     if (!confirm("Voulez-vous vraiment supprimer cet avis ?")) return;
 
@@ -148,7 +75,67 @@ const deleteReview = (id) => {
     });
 };
 
-// Section produit similaire
+// Ajout au panier
+const customization = ref("");
+const quantity = ref(1);
+
+const increment = () => {
+    quantity.value++;
+};
+const decrement = () => {
+    if (quantity.value > 1) {
+        quantity.value--;
+    }
+};
+
+// Fonction pour ajouter au panier
+const addToCart = () => {
+    router.post(
+        route("cart.add"),
+        {
+            product_id: props.product.id,
+            quantity: quantity.value,
+            customization: customization.value,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                customization.value = ""; // Réinitialiser le champ de personnalisation
+                alert("Produit ajouté au panier !");
+            },
+            onError: (errors) => {
+                console.error("Erreur ajout panier:", errors);
+                alert("Impossible d'ajouter au panier");
+            },
+        }
+    );
+};
+
+// Bouton favoris
+const isFavorite = ref(!!props.product.is_favorite);
+
+const toggleFavorite = () => {
+    router.post(
+        route("wishlist.toggle", props.product.id),
+        {},
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                const flashData = page.props.flash?.favoriteToggled;
+                if (flashData) {
+                    isFavorite.value = flashData.status === "added";
+                } else {
+                    // Fallback simple si y'a pas de flash data
+                    isFavorite.value = !isFavorite.value;
+                }
+            },
+            onError: (errors) => {
+                console.error("Erreur favoris:", errors);
+                alert("Une erreur est survenue");
+            },
+        }
+    );
+};
 </script>
 
 <template>
