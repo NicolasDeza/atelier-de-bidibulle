@@ -14,7 +14,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with('category')->where('stock', '>', 0);
+        $query = Product::with('category');
 
         // Filtrer par catégorie si le paramètre category est présent
         if ($request->has('category') && $request->category !== 'all') {
@@ -56,7 +56,7 @@ class ProductController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show($slug)
+public function show($slug)
 {
     $product = Product::with(['category', 'reviews.user'])
         ->where('slug', $slug)
@@ -69,6 +69,7 @@ class ProductController extends Controller
         'description' => $product->description,
         'price' => $product->price,
         'old_price' => $product->old_price,
+        'stock' => $product->stock, //
         'image_url' => asset('images/produits/' . $product->image),
         'category' => $product->category ? [
             'id' => $product->category->id,
@@ -94,11 +95,11 @@ class ProductController extends Controller
         'average_rating' => round($product->reviews()->avg('rating') ?? 0, 1),
     ];
 
-    // ✅ Produits similaires (même catégorie, excluant le produit actuel)
+    // Produits similaires de la même catégorie
     $similarProducts = Product::where('category_id', $product->category_id)
         ->where('id', '!=', $product->id)
         ->latest()
-        ->take(8) // ✅ Augmenté de 4 à 8 produits
+        ->take(8)
         ->get()
         ->map(function ($similar) {
             return [
@@ -116,6 +117,7 @@ class ProductController extends Controller
         'similarProducts' => $similarProducts,
     ]);
 }
+
 
 
     /**

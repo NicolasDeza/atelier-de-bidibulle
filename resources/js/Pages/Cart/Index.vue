@@ -8,7 +8,7 @@ const props = defineProps({
     isAuthenticated: Boolean,
 });
 
-// Mise à jour quantité
+// Mise à jour de la quantité
 const updateQuantity = (item, newQuantity) => {
     if (newQuantity < 1) return;
 
@@ -146,7 +146,7 @@ const clearCart = () => {
                     </div>
                 </div>
 
-                <!-- Résumé de commande -->
+                <!-- Résumé de la commande -->
                 <div class="bg-gray-50 p-6 rounded-lg h-fit">
                     <h2 class="font-semibold text-xl mb-4">Résumé</h2>
 

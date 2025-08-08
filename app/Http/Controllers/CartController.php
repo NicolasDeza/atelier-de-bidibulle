@@ -62,63 +62,85 @@ class CartController extends Controller
     }
 
     public function add(Request $request)
-    {
-        $request->validate([
-            'product_id'    => 'required|exists:products,id',
-            'quantity'      => 'required|integer|min:1',
-            'customization' => 'nullable|string|max:255',
-        ]);
+{
+    $request->validate([
+        'product_id'    => 'required|exists:products,id',
+        'quantity'      => 'required|integer|min:1',
+        'customization' => 'nullable|string|max:255',
+    ]);
 
-        if (auth()->check()) {
-            $user = auth()->user();
+    $product = Product::findOrFail($request->product_id);
 
-            $cart = Cart::firstOrCreate(
-                ['user_id' => $user->id],
-                ['created_at' => now()]
-            );
+    // Vérification du stock
+    if ($product->stock < $request->quantity) {
+        return back()->withErrors(['message' => 'Stock insuffisant pour ce produit.']);
+    }
 
-            $item = $cart->cartItems()
-                ->where('product_id', $request->product_id)
-                ->where('customization', $request->customization)
-                ->first();
+    $customization = $request->customization ?? null;
 
-            if ($item) {
-                $item->quantity += $request->quantity;
-                $item->save();
-            } else {
-                $cart->cartItems()->create([
-                    'product_id'    => $request->product_id,
-                    'quantity'      => $request->quantity,
-                    'customization' => $request->customization,
-                ]);
+    //  Panier utilisateur connecté
+    if (auth()->check()) {
+        $user = auth()->user();
+
+        $cart = Cart::firstOrCreate(
+            ['user_id' => $user->id],
+            ['created_at' => now()]
+        );
+
+        $item = $cart->cartItems()
+            ->where('product_id', $product->id)
+            ->where('customization', $customization)
+            ->first();
+
+        if ($item) {
+            $newQty = $item->quantity + $request->quantity;
+
+            if ($newQty > $product->stock) {
+                return back()->withErrors(['message' => 'Stock insuffisant pour ajouter cette quantité.']);
             }
 
-            return back()->with('success', 'Produit ajouté au panier.');
-        }
-
-        // Invité → panier en session
-        $cart = session()->get('cart', []);
-
-        $key = $request->product_id . '-' . md5($request->customization ?? '');
-
-        if (isset($cart[$key])) {
-            $cart[$key]['quantity'] += $request->quantity;
+            $item->quantity = $newQty;
+            $item->save();
         } else {
-            $product = Product::findOrFail($request->product_id);
-            $cart[$key] = [
+            $cart->cartItems()->create([
                 'product_id'    => $product->id,
-                'name'          => $product->name,
-                'price'         => $product->price,
                 'quantity'      => $request->quantity,
-                'image'         => $product->image,
-                'customization' => $request->customization,
-            ];
+                'customization' => $customization,
+            ]);
         }
-
-        session()->put('cart', $cart);
 
         return back()->with('success', 'Produit ajouté au panier.');
     }
+
+    // Panier utilisateur invité -> panier en session
+    $cart = session()->get('cart', []);
+
+    $key = $product->id . '-' . md5($customization ?? '');
+
+    if (isset($cart[$key])) {
+        $newQty = $cart[$key]['quantity'] + $request->quantity;
+
+        if ($newQty > $product->stock) {
+            return back()->withErrors(['message' => 'Stock insuffisant pour ajouter cette quantité.']);
+        }
+
+        $cart[$key]['quantity'] = $newQty;
+    } else {
+        $cart[$key] = [
+            'product_id'    => $product->id,
+            'name'          => $product->name,
+            'price'         => $product->price,
+            'quantity'      => $request->quantity,
+            'image'         => $product->image,
+            'customization' => $customization,
+        ];
+    }
+
+    session()->put('cart', $cart);
+
+    return back()->with('success', 'Produit ajouté au panier.');
+}
+
 
     public function update(Request $request, CartItem $cartItem)
     {

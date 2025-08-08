@@ -264,13 +264,23 @@ const toggleFavorite = () => {
                             class="w-full border border-gray-300 rounded px-3 py-2"
                         />
                     </div>
-                    <!-- Bouton panier -->
-                    <button
-                        @click="addToCart"
-                        class="bg-bidibordeaux hover:bg-rose-800 text-white font-bold py-3 px-6 rounded"
-                    >
-                        Ajouter au panier
-                    </button>
+                    <!-- Bouton panier + gestion du stock -->
+                    <div class="mb-4">
+                        <button
+                            @click="addToCart"
+                            :disabled="product.stock === 0"
+                            class="bg-bidibordeaux hover:bg-rose-800 text-white font-bold py-3 px-6 rounded w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Ajouter au panier
+                        </button>
+
+                        <p
+                            v-if="product.stock === 0"
+                            class="text-red-600 font-semibold text-sm mt-2"
+                        >
+                            Ce produit est actuellement en rupture de stock.
+                        </p>
+                    </div>
 
                     <!-- Catégorie -->
                     <p class="mt-6 text-sm text-gray-500">
