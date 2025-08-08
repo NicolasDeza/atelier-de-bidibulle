@@ -98,7 +98,7 @@ class ProductController extends Controller
     $similarProducts = Product::where('category_id', $product->category_id)
         ->where('id', '!=', $product->id)
         ->latest()
-        ->take(4)
+        ->take(8) // ✅ Augmenté de 4 à 8 produits
         ->get()
         ->map(function ($similar) {
             return [

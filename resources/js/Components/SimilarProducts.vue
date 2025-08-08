@@ -1,28 +1,65 @@
 <script setup>
 import { Link } from "@inertiajs/vue3";
+import { ref, computed } from "vue";
 
-defineProps({
+const props = defineProps({
     products: {
         type: Array,
         required: true,
     },
 });
+
+const scrollRef = ref(null);
+
+// Affichage des boutons ou non
+const showArrows = computed(() => {
+    return props.products.length > 4;
+});
+
+const scrollLeft = () => {
+    scrollRef.value?.scrollBy({ left: -300, behavior: "smooth" });
+};
+
+const scrollRight = () => {
+    scrollRef.value?.scrollBy({ left: 300, behavior: "smooth" });
+};
 </script>
 
 <template>
     <section v-if="products.length" class="mt-20">
-        <div class="max-w-screen-xl mx-auto px-4">
-            <h3 class="text-2xl font-bold mb-8 text-center">
-                Vous pourriez aussi aimer
-            </h3>
+        <div class="max-w-[1440px] mx-auto px-4">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold">Vous pourriez aussi aimer</h3>
 
+                <!-- Bouton cachés si moons de 4 produits -->
+                <div v-if="showArrows" class="hidden md:flex gap-2">
+                    <button
+                        aria-label="Faire défiler vers la gauche"
+                        @click="scrollLeft"
+                        class="bg-white border border-gray-300 rounded-full w-10 h-10 flex items-center justify-center shadow-md hover:bg-gray-100 transition"
+                    >
+                        ←
+                    </button>
+
+                    <button
+                        aria-label="Faire défiler vers la droite"
+                        @click="scrollRight"
+                        class="bg-white border border-gray-300 rounded-full w-10 h-10 flex items-center justify-center shadow-md hover:bg-gray-100 transition"
+                    >
+                        →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Carousel produits -->
             <div
-                class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8"
+                ref="scrollRef"
+                class="flex overflow-x-auto gap-4 snap-x snap-mandatory scroll-smooth pb-4 px-1 no-scrollbar"
             >
                 <div
                     v-for="product in products"
                     :key="product.id"
-                    class="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+                    class="min-w-[220px] sm:min-w-[240px] md:min-w-[260px] lg:min-w-[280px] flex-shrink-0 snap-start bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                 >
                     <Link
                         :href="route('products.show', product.slug)"
@@ -55,3 +92,13 @@ defineProps({
         </div>
     </section>
 </template>
+
+<style scoped>
+/*  Masquer la scrollbar sur Chrome/Firefox */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    scrollbar-width: none;
+}
+</style>

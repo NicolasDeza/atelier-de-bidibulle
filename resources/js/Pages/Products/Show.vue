@@ -10,6 +10,7 @@ const props = defineProps({
 });
 
 const page = usePage();
+
 const newReview = ref("");
 const newRating = ref("");
 
@@ -230,6 +231,7 @@ const deleteReview = (id) => {
                             <button
                                 @click="decrement"
                                 class="px-3 py-1 hover:bg-gray-200"
+                                aria-label="Diminuer la quantité"
                             >
                                 -
                             </button>
@@ -237,6 +239,7 @@ const deleteReview = (id) => {
                             <button
                                 @click="increment"
                                 class="px-3 py-1 hover:bg-gray-200"
+                                aria-label="Augmenter la quantité"
                             >
                                 +
                             </button>
@@ -249,6 +252,11 @@ const deleteReview = (id) => {
                                     ? 'border-red-500 text-red-500'
                                     : 'border-gray-300 text-gray-400 hover:text-red-400 hover:border-red-400',
                             ]"
+                            :aria-label="
+                                isFavorite
+                                    ? 'Retirer des favoris'
+                                    : 'Ajouter aux favoris'
+                            "
                         >
                             <span class="text-xl leading-none">
                                 {{ isFavorite ? "♥" : "♡" }}
@@ -295,7 +303,7 @@ const deleteReview = (id) => {
         </section>
 
         <!-- Section avis produit -->
-        <section class="mt-16 max-w-3xl mx-auto px-4">
+        <section class="mt-16 max-w-[1440px] mx-auto px-4 md:px-8">
             <h2 class="text-2xl font-bold mb-6 text-center">
                 Avis sur ce produit
             </h2>
@@ -321,6 +329,7 @@ const deleteReview = (id) => {
                             v-if="page.props.auth?.user?.id === review.user.id"
                             @click="deleteReview(review.id)"
                             class="text-red-500 text-xs hover:underline"
+                            aria-label="Supprimer cet avis"
                         >
                             Supprimer
                         </button>
@@ -364,6 +373,11 @@ const deleteReview = (id) => {
                 <button
                     @click="showReviewForm = !showReviewForm"
                     class="mb-4 px-4 py-2 bg-bidibordeaux text-white rounded hover:bg-rose-800 transition"
+                    :aria-label="
+                        showReviewForm
+                            ? 'Annuler le formulaire d’avis'
+                            : 'Ouvrir le formulaire pour laisser un avis'
+                    "
                 >
                     {{ showReviewForm ? "Annuler" : "Laisser un avis" }}
                 </button>
@@ -400,13 +414,13 @@ const deleteReview = (id) => {
                 </div>
             </div>
 
-            <!-- Message si non connecté -->
+            <!-- Message si on est pas connecté -->
             <p v-else class="text-center text-gray-500 mt-6">
                 Connectez-vous pour laisser un avis.
             </p>
         </section>
 
-        <section class="mt-20">
+        <section class="mt-20 mb-20 max-w-[1440px] mx-auto px-4 md:px-8">
             <SimilarProducts :products="props.similarProducts" />
         </section>
     </PublicLayout>
