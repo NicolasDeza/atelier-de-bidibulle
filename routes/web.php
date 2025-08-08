@@ -25,7 +25,18 @@ Route::post('/wishlist/toggle/{productId}', [WishlistController::class, 'toggle'
 });
 
 // Routes pour le panier
+Route::get('/panier', [CartController::class, 'index'])->name('cart.index');
 Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+Route::middleware(['auth'])->group(function () {
+    Route::put('/cart/update/{cartItem}', [CartController::class, 'update'])->name('cart.update');
+    Route::delete('/cart/remove/{cartItem}', [CartController::class, 'destroy'])->name('cart.remove');
+    Route::delete('/cart/clear', [CartController::class, 'clear'])->name('cart.clear');
+});
+
+// PANIER INVITÉ (SESSION)
+Route::put('/panier-session/{key}', [CartController::class, 'updateSession'])->name('cart.session.update');
+Route::delete('/panier-session/{key}', [CartController::class, 'removeSession'])->name('cart.session.remove');
+
 
 
 // Routes pour les avis

@@ -6,18 +6,62 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class CartController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        if (auth()->check()) {
+            $user = auth()->user();
+            $cart = $user->cart;
+
+            if (!$cart) {
+                $cartItems = collect();
+                $total = 0;
+            } else {
+                $cartItems = $cart->cartItems()->with('product')->get()->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'product_id' => $item->product->id,
+                        'name' => $item->product->name,
+                        'price' => $item->product->price,
+                        'quantity' => $item->quantity,
+                        'customization' => $item->customization,
+                        'image_url' => asset('images/produits/' . $item->product->image),
+                        'subtotal' => $item->product->price * $item->quantity,
+                    ];
+                });
+
+                $total = $cartItems->sum('subtotal');
+            }
+        } else {
+            $sessionCart = session()->get('cart', []);
+
+            $cartItems = collect($sessionCart)->map(function ($item, $key) {
+                return [
+                    'key' => $key,
+                    'product_id' => $item['product_id'],
+                    'name' => $item['name'],
+                    'price' => $item['price'],
+                    'quantity' => $item['quantity'],
+                    'customization' => $item['customization'] ?? null,
+                    'image_url' => asset('images/produits/' . $item['image']),
+                    'subtotal' => $item['price'] * $item['quantity'],
+                ];
+            });
+
+            $total = $cartItems->sum('subtotal');
+        }
+
+        return Inertia::render('Cart/Index', [
+            'cartItems' => $cartItems,
+            'total' => $total,
+            'isAuthenticated' => auth()->check(),
+        ]);
     }
 
-       public function add(Request $request)
+    public function add(Request $request)
     {
         $request->validate([
             'product_id'    => 'required|exists:products,id',
@@ -25,7 +69,6 @@ class CartController extends Controller
             'customization' => 'nullable|string|max:255',
         ]);
 
-        // ✅ Cas utilisateur connecté
         if (auth()->check()) {
             $user = auth()->user();
 
@@ -34,13 +77,13 @@ class CartController extends Controller
                 ['created_at' => now()]
             );
 
-            $item = $cart->cartItems()->where('product_id', $request->product_id)->first();
+            $item = $cart->cartItems()
+                ->where('product_id', $request->product_id)
+                ->where('customization', $request->customization)
+                ->first();
 
             if ($item) {
                 $item->quantity += $request->quantity;
-                if ($request->customization) {
-                    $item->customization = $request->customization;
-                }
                 $item->save();
             } else {
                 $cart->cartItems()->create([
@@ -53,18 +96,16 @@ class CartController extends Controller
             return back()->with('success', 'Produit ajouté au panier.');
         }
 
-        // utilisateur invité → stockage dans la SESSION
+        // Invité → panier en session
         $cart = session()->get('cart', []);
-        $id = $request->product_id;
 
-        if (isset($cart[$id])) {
-            $cart[$id]['quantity'] += $request->quantity;
-            if ($request->customization) {
-                $cart[$id]['customization'] = $request->customization;
-            }
+        $key = $request->product_id . '-' . md5($request->customization ?? '');
+
+        if (isset($cart[$key])) {
+            $cart[$key]['quantity'] += $request->quantity;
         } else {
-            $product = Product::find($id);
-            $cart[$id] = [
+            $product = Product::findOrFail($request->product_id);
+            $cart[$key] = [
                 'product_id'    => $product->id,
                 'name'          => $product->name,
                 'price'         => $product->price,
@@ -76,56 +117,74 @@ class CartController extends Controller
 
         session()->put('cart', $cart);
 
-        return back()->with('success', 'Produit personnalisé ajouté au panier.');
+        return back()->with('success', 'Produit ajouté au panier.');
     }
 
-
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function update(Request $request, CartItem $cartItem)
     {
-        //
+        $request->validate([
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        if ($cartItem->cart->user_id !== auth()->id()) {
+            return back()->withErrors(['message' => 'Action non autorisée']);
+        }
+
+        $cartItem->update(['quantity' => $request->quantity]);
+
+        return back()->with('success', 'Quantité mise à jour');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function destroy(CartItem $cartItem)
     {
-        //
+        if ($cartItem->cart->user_id !== auth()->id()) {
+            return back()->withErrors(['message' => 'Action non autorisée']);
+        }
+
+        $cartItem->delete();
+
+        return back()->with('success', 'Produit retiré du panier');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Cart $cart)
+    public function updateSession(Request $request, $key)
     {
-        //
+        $request->validate([
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        $cart = session('cart', []);
+
+        if (isset($cart[$key])) {
+            $cart[$key]['quantity'] = $request->quantity;
+            session(['cart' => $cart]);
+        }
+
+        return back()->with('success', 'Quantité mise à jour');
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Cart $cart)
+    public function removeSession($key)
     {
-        //
+        $cart = session('cart', []);
+
+        if (isset($cart[$key])) {
+            unset($cart[$key]);
+            session(['cart' => $cart]);
+        }
+
+        return back()->with('success', 'Produit retiré du panier');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Cart $cart)
+    public function clear()
     {
-        //
-    }
+        if (auth()->check()) {
+            $user = auth()->user();
+            if ($user->cart) {
+                $user->cart->cartItems()->delete();
+            }
+        } else {
+            session()->forget('cart');
+        }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Cart $cart)
-    {
-        //
+        return back()->with('success', 'Panier vidé');
     }
 }

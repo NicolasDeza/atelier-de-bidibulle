@@ -58,11 +58,12 @@ const logout = () => {
                 </Link>
 
                 <!-- Icône panier -->
-                <button
+                <Link
+                    :href="route('cart.index')"
                     class="hidden md:inline text-black hover:text-gray-600 transition"
                 >
                     <i class="fa-solid fa-shopping-cart text-lg"></i>
-                </button>
+                </Link>
 
                 <!-- Icône user -->
                 <Link
@@ -240,10 +241,13 @@ const logout = () => {
                     </Link>
                 </li>
                 <li>
-                    <button class="flex items-center gap-2">
+                    <Link
+                        :href="route('cart.index')"
+                        class="flex items-center gap-2"
+                    >
                         <i class="fa-solid fa-shopping-cart text-black"></i>
                         <span>Panier</span>
-                    </button>
+                    </Link>
                 </li>
                 <li>
                     <div>
