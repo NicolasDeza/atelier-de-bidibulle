@@ -184,34 +184,47 @@ const toggleFavorite = () => {
                             avis)
                         </div>
                     </div>
-
                     <p v-else class="text-sm text-gray-500 mb-2">
                         Aucun avis pour ce produit
                     </p>
 
                     <!-- Nom produit -->
-                    <h1 class="text-2xl font-bold mb-4">
-                        {{ product.name }}
-                    </h1>
+                    <h1 class="text-2xl font-bold mb-2">{{ product.name }}</h1>
+
+                    <!-- Prix + badge stock -->
+                    <div class="flex items-center gap-3 mb-4">
+                        <p class="text-2xl font-bold">
+                            {{ Number(product.price).toFixed(2) }}€
+                            <span
+                                v-if="product.old_price"
+                                class="text-red-600 text-base line-through ml-2"
+                            >
+                                {{ Number(product.old_price).toFixed(2) }}€
+                            </span>
+                        </p>
+
+                        <span
+                            v-if="product.stock === 0"
+                            class="text-sm font-medium text-red-600"
+                        >
+                            Rupture
+                        </span>
+                        <span
+                            v-else-if="product.stock <= 3"
+                            class="text-sm font-medium text-amber-600"
+                        >
+                            Plus que {{ product.stock }}
+                        </span>
+                        <span v-else class="text-sm font-medium text-green-600">
+                            En stock
+                        </span>
+                    </div>
 
                     <!-- Description -->
-                    <p class="text-gray-700 mb-6">
-                        {{ product.description }}
-                    </p>
+                    <p class="text-gray-700 mb-4">{{ product.description }}</p>
 
-                    <!-- Prix -->
-                    <p class="text-2xl font-bold mb-6">
-                        {{ Number(product.price).toFixed(2) }}€
-                        <span
-                            v-if="product.old_price"
-                            class="text-red-600 text-base line-through ml-2"
-                        >
-                            {{ Number(product.old_price).toFixed(2) }}€
-                        </span>
-                    </p>
-
-                    <!-- Sélecteur quantité et favoris -->
-                    <div class="flex items-center gap-4 mb-6">
+                    <!-- Quantité, favoris, catégorie (compact) -->
+                    <div class="flex items-center flex-wrap gap-3 mb-6">
                         <div
                             class="flex items-center border border-gray-300 rounded"
                         >
@@ -231,6 +244,7 @@ const toggleFavorite = () => {
                                 +
                             </button>
                         </div>
+
                         <button
                             @click="toggleFavorite"
                             :class="[
@@ -244,19 +258,27 @@ const toggleFavorite = () => {
                                     ? 'Retirer des favoris'
                                     : 'Ajouter aux favoris'
                             "
+                            title="Ajouter aux favoris"
                         >
-                            <span class="text-xl leading-none">
-                                {{ isFavorite ? "♥" : "♡" }}
-                            </span>
+                            <span class="text-xl leading-none">{{
+                                isFavorite ? "♥" : "♡"
+                            }}</span>
                         </button>
+
+                        <span
+                            v-if="product.category?.name"
+                            class="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700"
+                        >
+                            {{ product.category.name }}
+                        </span>
                     </div>
-                    <!-- Champ personnalisation -->
+
+                    <!-- Personnalisation -->
                     <div class="mb-6">
                         <label
                             class="block mb-2 text-sm font-medium text-gray-700"
+                            >Personnalisation (facultatif) :</label
                         >
-                            Personnalisation (facultatif) :
-                        </label>
                         <input
                             v-model="customization"
                             type="text"
@@ -264,7 +286,8 @@ const toggleFavorite = () => {
                             class="w-full border border-gray-300 rounded px-3 py-2"
                         />
                     </div>
-                    <!-- Bouton panier + gestion du stock -->
+
+                    <!-- Bouton panier + message rupture -->
                     <div class="mb-4">
                         <button
                             @click="addToCart"
@@ -273,7 +296,6 @@ const toggleFavorite = () => {
                         >
                             Ajouter au panier
                         </button>
-
                         <p
                             v-if="product.stock === 0"
                             class="text-red-600 font-semibold text-sm mt-2"
@@ -282,23 +304,16 @@ const toggleFavorite = () => {
                         </p>
                     </div>
 
-                    <!-- Catégorie -->
-                    <p class="mt-6 text-sm text-gray-500">
-                        <span class="uppercase font-bold">Catégorie :</span>
-                        {{ product.category?.name }}
-                    </p>
-
                     <!-- Retour catalogue -->
                     <Link
                         :href="route('products.index')"
-                        class="mt-8 inline-block text-sm text-gray-500 underline"
+                        class="mt-6 inline-block text-sm text-gray-500 underline"
                     >
                         ← Retour au catalogue
                     </Link>
                 </div>
             </div>
         </section>
-
         <!-- Section avis produit -->
         <section class="mt-16 max-w-[1440px] mx-auto px-4 md:px-8">
             <h2 class="text-2xl font-bold mb-6 text-center">
