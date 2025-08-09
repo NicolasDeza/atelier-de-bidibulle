@@ -12,6 +12,7 @@ class Review extends Model
     /** @use HasFactory<\Database\Factories\ReviewFactory> */
     use HasFactory;
 
+
     protected $casts = [
     'rating' => 'integer',
     'user_id' => 'integer',

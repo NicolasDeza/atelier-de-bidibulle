@@ -18,8 +18,6 @@ return new class extends Migration
         $table->integer('rating');
         $table->text('comment');
         $table->timestamps();
-
-        // Empêche un utilisateur de commenter plusieurs fois le même produit
         $table->unique(['user_id', 'product_id']);
     });
 }

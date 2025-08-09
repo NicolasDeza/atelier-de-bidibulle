@@ -47,30 +47,48 @@ class CartController extends Controller
                 $total = $cartItems->sum('subtotal');
             }
         } else {
-            // Invité : on lit la session et on recharge le produit pour connaître le stock actuel
+            // Invité : relire la session et recharger le produit (prix/stock à jour)
             $sessionCart = session()->get('cart', []);
 
-            $cartItems = collect($sessionCart)->map(function ($item, $key) {
+            $cartItems = collect($sessionCart)->map(function ($item, $key) use (&$sessionCart) {
                 $product = Product::find($item['product_id']);
-                $stock   = (int) ($product->stock ?? 0);
+
+                // Produit supprimé ou introuvable -> retirer de la session
+                if (!$product) {
+                    unset($sessionCart[$key]);
+                    return null;
+                }
+
+                $stock = (int) ($product->stock ?? 0);
+                $price = $product->price; // prix actuel
+                $qty   = (int) $item['quantity'];
+
+                // Clamp quantité si > stock actuel
+                if ($stock >= 0 && $qty > $stock) {
+                    $qty = $stock;
+                    $sessionCart[$key]['quantity'] = $qty;
+                }
 
                 return [
                     'key'           => $key,
-                    'product_id'    => $item['product_id'],
-                    'name'          => $item['name'],
-                    'price'         => $item['price'],
-                    'quantity'      => $item['quantity'],
+                    'product_id'    => $product->id,
+                    'name'          => $product->name,
+                    'price'         => $price,
+                    'quantity'      => $qty,
                     'customization' => $item['customization'] ?? null,
-                    'image_url'     => asset('images/produits/' . $item['image']),
-                    'subtotal'      => $item['price'] * $item['quantity'],
+                    'image_url'     => asset('images/produits/' . $product->image),
+                    'subtotal'      => $price * $qty,
 
-                    // ➕ infos stock
                     'stock'         => $stock,
-                    'is_available'  => $stock >= $item['quantity'],
+                    'is_available'  => $stock >= $qty,
                     'max_quantity'  => $stock,
                 ];
-            });
+            })->filter(); // enlève les null
 
+            // Si on a modifié/retiré des items, on réécrit la session
+            session()->put('cart', $sessionCart);
+
+            // Total basé sur les prix/qtés corrigés
             $total = $cartItems->sum('subtotal');
         }
 
@@ -86,7 +104,7 @@ class CartController extends Controller
         $request->validate([
             'product_id'    => 'required|exists:products,id',
             'quantity'      => 'required|integer|min:1',
-            'customization' => 'nullable|string|max:255',
+            'customization' => 'nullable|string|max:100',
         ]);
 
         $product = Product::findOrFail($request->product_id);
@@ -96,7 +114,9 @@ class CartController extends Controller
             return back()->withErrors(['message' => 'Stock insuffisant pour ce produit.']);
         }
 
-        $customization = $request->customization ?? null;
+        $customization = $request->filled('customization')
+           ? trim(strip_tags($request->customization))
+           : null;
 
         // Utilisateur connecté → BDD
         if (auth()->check()) {

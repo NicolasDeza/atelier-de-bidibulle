@@ -45,7 +45,7 @@ class ReviewPolicy
      */
     public function delete(User $user, Review $review)
     {
-        return $user->id === $review->user_id;
+        return $user->id === $review->user_id || $user->is_admin;
     }
 
     /**

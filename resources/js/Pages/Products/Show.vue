@@ -88,19 +88,38 @@ const decrement = () => {
     }
 };
 
+// Fonction de nettoyage pour éviter les injections
+const sanitizeInput = (input) => {
+    return input
+        .trim()
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+};
+
 // Fonction pour ajouter au panier
 const addToCart = () => {
+    // Sanitiser et limiter la personnalisation
+    const cleanCustomization = sanitizeInput(customization.value).substring(
+        0,
+        100
+    );
+
+    // Forcer la quantité dans les limites valides
+    const validQuantity = Math.max(
+        1,
+        Math.min(quantity.value, props.product.stock || 1)
+    );
+
     router.post(
         route("cart.add"),
         {
             product_id: props.product.id,
-            quantity: quantity.value,
-            customization: customization.value,
+            quantity: validQuantity,
+            customization: cleanCustomization,
         },
         {
             preserveScroll: true,
             onSuccess: () => {
-                customization.value = ""; // Réinitialiser le champ de personnalisation
+                customization.value = "";
                 alert("Produit ajouté au panier !");
             },
             onError: (errors) => {
@@ -285,6 +304,7 @@ const toggleFavorite = () => {
                             v-model="customization"
                             type="text"
                             placeholder="Ex : Mamy d'amour"
+                            maxlength="100"
                             class="w-full border border-gray-300 rounded px-3 py-2"
                         />
                     </div>
@@ -364,7 +384,11 @@ const toggleFavorite = () => {
                     </div>
 
                     <span class="text-xs text-gray-400">
-                        {{ new Date(review.created_at).toLocaleDateString() }}
+                        {{
+                            new Intl.DateTimeFormat("fr-BE").format(
+                                new Date(review.created_at)
+                            )
+                        }}
                     </span>
 
                     <p class="text-gray-700 leading-relaxed mt-2">
@@ -444,7 +468,20 @@ const toggleFavorite = () => {
 
             <!-- Message si on est pas connecté -->
             <p v-else class="text-center text-gray-500 mt-6">
-                Connectez-vous pour laisser un avis.
+                <Link
+                    :href="route('login')"
+                    class="hover:text-rose-800 underline font-medium"
+                >
+                    Connectez-vous
+                </Link>
+                ou
+                <Link
+                    :href="route('register')"
+                    class="hover:text-rose-800 underline font-medium"
+                >
+                    créez un compte
+                </Link>
+                pour laisser un avis.
             </p>
         </section>
 

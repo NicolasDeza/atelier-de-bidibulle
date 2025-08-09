@@ -10,7 +10,7 @@ class ReviewController extends Controller
 {
     use AuthorizesRequests;
 
-    protected $fillable = ['user_id', 'product_id', 'rating', 'comment'];
+
     /**
      * Display a listing of the resource.
      */
@@ -35,18 +35,20 @@ class ReviewController extends Controller
     {
         $request->validate([
             'product_id' => 'required|exists:products,id',
-            'rating'     => 'required|integer|min:1|max:5',
+            'rating'     => 'required|integer|between:1,5',
             'comment'    => 'required|string|max:500',
         ]);
 
         $user = auth()->user();
         if (!$user) {
-            return back()->withErrors(['message' => 'Vous devez être connecté pour laisser un avis.']);
+            return back()->withErrors([
+                'message' => 'Vous devez être connecté pour laisser un avis.'
+            ])->withInput();
         }
 
         // Vérifier si doublon d'avis
         if (Review::where('user_id', $user->id)->where('product_id', $request->product_id)->exists()) {
-            return back()->withErrors(['message' => 'Vous avez déjà laissé un avis pour ce produit. Supprimez-le avant d’en ajouter un autre.']);
+            return back()->withErrors(['message' => 'Vous avez déjà laissé un avis pour ce produit. Supprimez-le avant d\'en ajouter un autre.']);
         }
 
         Review::create([
@@ -83,17 +85,18 @@ class ReviewController extends Controller
      */
    public function update(Request $request, Review $review)
 {
-
+      $this->authorize('update', $review);
 }
     /**
      * Remove the specified resource from storage.
      */
 public function destroy(Review $review)
     {
-        $this->authorize('delete', $review); // Vérifie que seul l'auteur peut supprimer
+        $this->authorize('delete', $review);
 
         $review->delete();
 
         return back()->with('success', 'Votre avis a été supprimé.');
     }
 }
+
