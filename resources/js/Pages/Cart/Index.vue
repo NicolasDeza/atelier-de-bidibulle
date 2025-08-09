@@ -1,5 +1,6 @@
 <script setup>
 import { Link, router } from "@inertiajs/vue3";
+import { computed } from "vue";
 import PublicLayout from "@/Layouts/PublicLayout.vue";
 
 const props = defineProps({
@@ -8,9 +9,34 @@ const props = defineProps({
     isAuthenticated: Boolean,
 });
 
-// Mise à jour de la quantité
+// --- TVA (les prix sont déjà TVAC)
+const TVA_RATE = 0.21;
+const subTotalHT = computed(() => {
+    const ht = props.total / (1 + TVA_RATE);
+    return ht.toFixed(2);
+});
+const tvaAmount = computed(() => {
+    const ht = props.total / (1 + TVA_RATE);
+    const tva = props.total - ht;
+    return tva.toFixed(2);
+});
+
+// --- Y a-t-il un problème de stock dans le panier ?
+const hasStockIssue = computed(() =>
+    props.cartItems.some(
+        (i) => !i.is_available || i.stock === 0 || i.quantity > i.stock
+    )
+);
+
+// Mise à jour de la quantité (client-side guard + requête)
 const updateQuantity = (item, newQuantity) => {
     if (newQuantity < 1) return;
+
+    // Ne pas dépasser le stock côté front (UX)
+    if (typeof item.stock === "number" && newQuantity > item.stock) {
+        newQuantity = item.stock;
+        alert(`Stock insuffisant (max ${item.stock}).`);
+    }
 
     if (props.isAuthenticated) {
         router.put(
@@ -32,9 +58,7 @@ const removeItem = (item) => {
     if (!confirm("Voulez-vous retirer ce produit du panier ?")) return;
 
     if (props.isAuthenticated) {
-        router.delete(route("cart.remove", item.id), {
-            preserveScroll: true,
-        });
+        router.delete(route("cart.remove", item.id), { preserveScroll: true });
     } else {
         router.delete(route("cart.session.remove", item.key), {
             preserveScroll: true,
@@ -45,10 +69,7 @@ const removeItem = (item) => {
 // Vider le panier
 const clearCart = () => {
     if (!confirm("Voulez-vous vider le panier ?")) return;
-
-    router.delete(route("cart.clear"), {
-        preserveScroll: true,
-    });
+    router.delete(route("cart.clear"), { preserveScroll: true });
 };
 </script>
 
@@ -87,6 +108,7 @@ const clearCart = () => {
                             <h3 class="font-semibold text-lg">
                                 {{ item.name }}
                             </h3>
+
                             <p class="text-gray-600">
                                 {{ Number(item.price).toFixed(2) }}€
                             </p>
@@ -96,6 +118,23 @@ const clearCart = () => {
                                 class="text-sm text-gray-500 italic"
                             >
                                 Personnalisation : {{ item.customization }}
+                            </p>
+
+                            <!-- État de stock -->
+                            <p
+                                v-if="item.stock === 0"
+                                class="text-red-600 text-sm font-semibold mt-1"
+                            >
+                                Rupture de stock
+                            </p>
+                            <p
+                                v-else-if="item.stock <= 3"
+                                class="text-amber-600 text-sm mt-1"
+                            >
+                                Plus que {{ item.stock }} en stock
+                            </p>
+                            <p v-else class="text-gray-500 text-xs mt-1">
+                                Stock disponible
                             </p>
 
                             <div class="flex items-center gap-4 mt-3">
@@ -122,7 +161,11 @@ const clearCart = () => {
                                                 item.quantity + 1
                                             )
                                         "
-                                        class="px-3 py-1 hover:bg-gray-100"
+                                        :disabled="
+                                            typeof item.stock === 'number' &&
+                                            item.quantity >= item.stock
+                                        "
+                                        class="px-3 py-1 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         +
                                     </button>
@@ -151,26 +194,43 @@ const clearCart = () => {
                     <h2 class="font-semibold text-xl mb-4">Résumé</h2>
 
                     <div class="space-y-2 mb-4">
+                        <!-- Sous-total HT -->
                         <div class="flex justify-between">
-                            <span>Sous-total</span>
-                            <span>{{ Number(total).toFixed(2) }}€</span>
+                            <span>Sous-total (HT)</span>
+                            <span>{{ subTotalHT }}€</span>
                         </div>
+
+                        <!-- TVA 21% -->
+                        <div class="flex justify-between">
+                            <span>TVA (21 %)</span>
+                            <span>{{ tvaAmount }}€</span>
+                        </div>
+
+                        <!-- Livraison -->
                         <div class="flex justify-between">
                             <span>Livraison</span>
                             <span>Gratuite</span>
                         </div>
+
                         <hr />
+
+                        <!-- Total TTC -->
                         <div class="flex justify-between font-semibold text-lg">
-                            <span>Total</span>
+                            <span>Total TTC</span>
                             <span>{{ Number(total).toFixed(2) }}€</span>
                         </div>
                     </div>
 
                     <button
-                        class="w-full bg-bidibordeaux hover:bg-rose-800 text-white py-3 rounded font-semibold mb-4"
+                        :disabled="hasStockIssue"
+                        class="w-full bg-bidibordeaux hover:bg-rose-800 text-white py-3 rounded font-semibold mb-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Procéder au paiement
                     </button>
+                    <p v-if="hasStockIssue" class="text-sm text-red-600 mb-2">
+                        Un ou plusieurs articles ne sont plus disponibles en
+                        quantité suffisante.
+                    </p>
 
                     <button
                         @click="clearCart"
