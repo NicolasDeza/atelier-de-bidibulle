@@ -230,7 +230,8 @@ const toggleFavorite = () => {
                         >
                             <button
                                 @click="decrement"
-                                class="px-3 py-1 hover:bg-gray-200"
+                                :disabled="quantity <= 1"
+                                class="px-3 py-1 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                                 aria-label="Diminuer la quantité"
                             >
                                 -
@@ -238,7 +239,8 @@ const toggleFavorite = () => {
                             <span class="px-4">{{ quantity }}</span>
                             <button
                                 @click="increment"
-                                class="px-3 py-1 hover:bg-gray-200"
+                                :disabled="quantity >= product.stock"
+                                class="px-3 py-1 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                                 aria-label="Augmenter la quantité"
                             >
                                 +
