@@ -4,9 +4,9 @@ import { computed } from "vue";
 import PublicLayout from "@/Layouts/PublicLayout.vue";
 
 const props = defineProps({
-    cartItems: Array,
-    total: Number,
-    isAuthenticated: Boolean,
+    cartItems: { type: Array, default: () => [] },
+    total: { type: Number, default: 0 },
+    isAuthenticated: { type: Boolean, default: false },
 });
 
 // --- TVA (les prix sont déjà TVAC)
@@ -69,6 +69,7 @@ const removeItem = (item) => {
 // Vider le panier
 const clearCart = () => {
     if (!confirm("Voulez-vous vider le panier ?")) return;
+
     router.delete(route("cart.clear"), { preserveScroll: true });
 };
 </script>
@@ -242,8 +243,9 @@ const clearCart = () => {
 
                     <button
                         :disabled="hasStockIssue"
+                        @click.prevent="$inertia.post(route('cart.checkout'))"
                         class="w-full bg-bidibordeaux hover:bg-rose-800 text-white py-3 rounded font-semibold mb-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        aria-label="Procéder au paiement de la commande"
+                        aria-label="Passer à l’adresse et à la livraison"
                     >
                         Procéder au paiement
                     </button>

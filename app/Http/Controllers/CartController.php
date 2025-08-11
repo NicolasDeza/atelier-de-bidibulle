@@ -12,58 +12,58 @@ class CartController extends Controller
 {
     public function index()
     {
-        if (auth()->check()) {
-            $user = auth()->user();
-            $cart = $user->cart;
 
-            if (!$cart) {
-                $cartItems = collect();
-                $total = 0;
-            } else {
-                $cartItems = $cart->cartItems()
-                    ->with('product')
-                    ->get()
-                    ->map(function ($item) {
-                        $product = $item->product;
-                        $stock   = (int) ($product->stock ?? 0);
+       $cartItems = [];
+    $total = 0.0;
 
-                        return [
-                            'id'            => $item->id,
-                            'product_id'    => $product->id,
-                            'name'          => $product->name,
-                            'price'         => $product->price,
-                            'quantity'      => $item->quantity,
-                            'customization' => $item->customization,
-                            'image_url'     => asset('images/produits/' . $product->image),
-                            'subtotal'      => $product->price * $item->quantity,
+    if (auth()->check()) {
+        $user = auth()->user();
+        $cart = $user->cart;
 
-                            // ➕ infos stock pour le front
-                            'stock'         => $stock,
-                            'is_available'  => $stock >= $item->quantity,
-                            'max_quantity'  => $stock,
-                        ];
-                    });
+        if ($cart) {
+            $items = $cart->cartItems()
+                ->with('product')
+                ->get()
+                ->map(function ($item) {
+                    $product = $item->product;
+                    $stock   = (int) ($product->stock ?? 0);
 
-                $total = $cartItems->sum('subtotal');
-            }
-        } else {
-            // Invité : relire la session et recharger le produit (prix/stock à jour)
-            $sessionCart = session()->get('cart', []);
+                    return [
+                        'id'            => $item->id,
+                        'product_id'    => $product->id,
+                        'name'          => $product->name,
+                        'price'         => (float) $product->price,
+                        'quantity'      => (int) $item->quantity,
+                        'customization' => $item->customization,
+                        'image_url'     => asset('images/produits/' . $product->image),
+                        'subtotal'      => (float) $product->price * (int) $item->quantity,
 
-            $cartItems = collect($sessionCart)->map(function ($item, $key) use (&$sessionCart) {
-                $product = Product::find($item['product_id']);
+                        'stock'         => $stock,
+                        'is_available'  => $stock >= (int) $item->quantity,
+                        'max_quantity'  => $stock,
+                    ];
+                });
 
-                // Produit supprimé ou introuvable -> retirer de la session
+            $total = (float) $items->sum('subtotal');
+            $cartItems = $items->values()->all(); // <-- array indexé
+        }
+    } else {
+        // Invité
+        $sessionCart = session()->get('cart', []);
+
+        $items = collect($sessionCart)
+            ->map(function ($item, $key) use (&$sessionCart) {
+                $product = Product::find($item['product_id'] ?? null);
+
                 if (!$product) {
                     unset($sessionCart[$key]);
                     return null;
                 }
 
                 $stock = (int) ($product->stock ?? 0);
-                $price = $product->price; // prix actuel
-                $qty   = (int) $item['quantity'];
+                $price = (float) $product->price;
+                $qty   = (int) ($item['quantity'] ?? 1);
 
-                // Clamp quantité si > stock actuel
                 if ($stock >= 0 && $qty > $stock) {
                     $qty = $stock;
                     $sessionCart[$key]['quantity'] = $qty;
@@ -83,20 +83,21 @@ class CartController extends Controller
                     'is_available'  => $stock >= $qty,
                     'max_quantity'  => $stock,
                 ];
-            })->filter(); // enlève les null
+            })
+            ->filter(); // enlève les null
 
-            // Si on a modifié/retiré des items, on réécrit la session
-            session()->put('cart', $sessionCart);
+        // Réécrire la session si modifiée
+        session()->put('cart', $sessionCart);
 
-            // Total basé sur les prix/qtés corrigés
-            $total = $cartItems->sum('subtotal');
-        }
+        $total = (float) $items->sum('subtotal');
+        $cartItems = $items->values()->all(); // <-- array indexé
+    }
 
-        return Inertia::render('Cart/Index', [
-            'cartItems'       => $cartItems,
-            'total'           => $total,
-            'isAuthenticated' => auth()->check(),
-        ]);
+    return Inertia::render('Cart/Index', [
+        'cartItems'       => $cartItems,   // Array pur
+        'total'           => $total,
+        'isAuthenticated' => auth()->check(),
+    ]);
     }
 
     public function add(Request $request)
@@ -182,7 +183,7 @@ class CartController extends Controller
             return back()->withErrors(['message' => 'Action non autorisée']);
         }
 
-        // ➕ Vérif stock au moment de la mise à jour
+        //  Vérif stock au moment de la mise à jour
         $stock = (int) ($cartItem->product->stock ?? 0);
         if ($request->quantity > $stock) {
             return back()->withErrors(['message' => "Stock insuffisant (max {$stock})."]);
@@ -213,7 +214,7 @@ class CartController extends Controller
         $cart = session('cart', []);
         if (!isset($cart[$key])) return back();
 
-        // ➕ Vérif stock avec le produit réel
+        //  Vérif stock avec le produit réel
         $product = Product::find($cart[$key]['product_id']);
         $stock   = (int) ($product->stock ?? 0);
 
@@ -247,6 +248,7 @@ class CartController extends Controller
                 $user->cart->cartItems()->delete();
             }
         } else {
+            // Pour les invités, vider directement la session
             session()->forget('cart');
         }
 
