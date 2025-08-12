@@ -5,110 +5,132 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Http\RedirectResponse;
 use Stripe\Stripe;
 use Stripe\Checkout\Session as StripeSession;
-
-
 
 class CheckoutPaymentController extends Controller
 {
     /**
-     * Affiche la page récapitulatif de la commande.
+     * Affiche la page Paiement (verrouillée).
      */
-    public function show(Order $order)
+    public function show(Request $request, Order $order)
     {
-        // Ici tu peux ajouter des gardes (ownership user ou token invité)
-        // et t'assurer que l'order est unpaid/processing.
-        // On envoie juste ce qu’il faut à la vue :
+        if ($redirect = $this->guardPaymentAccess($request, $order)) {
+            return $redirect;
+        }
+
+        // On envoie UNIQUEMENT le nécessaire à la vue
         return Inertia::render('Checkout/Payment', [
             'order' => [
                 'uuid'           => $order->uuid,
-                'id'             => $order->id,
                 'customer_email' => $order->customer_email,
                 'currency'       => $order->currency,
-                'shipping_total' => (int) $order->shipping_total, // en centimes
-                'total_price'    => (int) $order->total_price,    // en centimes
-                'items'          => $order->items,                // via accessor du modèle
+                // adapte: si tu stockes en centimes, mets (int); si en euros DECIMAL, (float)
+                'shipping_total' => (float) $order->shipping_total,
+                'total_price'    => (float) $order->total_price,
+                'items'          => $order->items, // accessor du modèle
             ],
         ]);
     }
 
     /**
-     * Crée la session Stripe Checkout.
+     * Crée la session Stripe Checkout (avec re-vérification des gardes).
      */
     public function createSession(Request $request, Order $order)
 {
-    \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
+    if ($redirect = $this->guardPaymentAccess($request, $order)) {
+        return $redirect;
+    }
 
-    // Charger les relations nécessaires pour les fallbacks
+    Stripe::setApiKey(config('services.stripe.secret'));
+
+    // Relations pour éventuels fallbacks
     $order->load(['orderProducts.product']);
 
-    // Helper: détecte euros vs centimes
+    // Helper: euros -> centimes (si <=100 on considère euros)
     $toCents = fn ($v) => (int) ($v > 100 ? $v : round((float)$v * 100));
 
     $lineItems = [];
 
-    // 1) Lignes produits
     foreach ($order->orderProducts as $op) {
-        // Prix figé dans la ligne > sinon prix actuel du produit > sinon 0
         $unit = $op->unit_price ?? optional($op->product)->price ?? 0;
-
         $amountCents = $toCents($unit);
-        if ($amountCents <= 0) {
-            continue; // on saute les lignes à 0
-        }
+        if ($amountCents <= 0) continue;
 
         $lineItems[] = [
             'price_data' => [
                 'currency'     => strtolower($order->currency ?? 'EUR'),
-                'product_data' => ['name' => $op->name ?? optional($op->product)->name ?? 'Produit'],
-                'unit_amount'  => $amountCents, // CENTIMES
+                'product_data' => ['name' => $op->name ?? (optional($op->product)->name ?? 'Produit')],
+                'unit_amount'  => $amountCents,
             ],
             'quantity' => (int) ($op->quantity ?: 1),
         ];
     }
 
-    // 2) Livraison (si > 0)
     $shippingCents = $toCents($order->shipping_total ?? 0);
     if ($shippingCents > 0) {
         $lineItems[] = [
             'price_data' => [
                 'currency'     => strtolower($order->currency ?? 'EUR'),
                 'product_data' => ['name' => 'Frais de livraison'],
-                'unit_amount'  => $shippingCents, // CENTIMES
+                'unit_amount'  => $shippingCents,
             ],
             'quantity' => 1,
         ];
     }
 
-    // 3) Secours: si aucune ligne valide, on envoie un seul item = total commande
     if (empty($lineItems)) {
-        $amountCents = $toCents($order->total_price ?? 0);
         $lineItems[] = [
             'price_data' => [
                 'currency'     => strtolower($order->currency ?? 'EUR'),
                 'product_data' => ['name' => 'Commande #' . $order->id],
-                'unit_amount'  => max($amountCents, 0),
+                'unit_amount'  => $toCents($order->total_price ?? 0),
             ],
             'quantity' => 1,
         ];
     }
 
-    // 4) Création de la session Checkout
-    $session = \Stripe\Checkout\Session::create([
-        'mode'           => 'payment',
-        'line_items'     => $lineItems,
-        'customer_email' => $order->customer_email,
-        'locale'         => 'fr', // retire-le si tu veux l'auto-détection
-        'success_url'    => route('checkout.payment.return', $order) . '?session_id={CHECKOUT_SESSION_ID}',
-        'cancel_url'     => route('checkout.payment.show', $order),
-        'metadata'       => [
-            'order_id'   => (string) $order->id,
-            'order_uuid' => (string) $order->uuid,
-        ],
-    ]);
+    try {
+        // Idempotency pour éviter les doubles sessions si double-clic (optionnel mais pro)
+        $session = StripeSession::create(
+            [
+                'mode'           => 'payment',
+                'line_items'     => $lineItems,
+                'customer_email' => $order->customer_email,
+                'locale'         => 'fr',
+                'success_url'    => route('checkout.payment.return', $order) . '?session_id={CHECKOUT_SESSION_ID}',
+                'cancel_url'     => route('checkout.payment.show', $order),
+                'metadata'       => [
+                    'order_id'       => (string) $order->id,
+                    'order_uuid'     => (string) $order->uuid,
+                    'cart_token'     => $request->session()->get('cart_token'),
+                    'customer_email' => (string) $order->customer_email,
+                ],
+            ],
+            ['idempotency_key' => 'order-'.$order->uuid.'-create-session']
+        );
+    } catch (\Stripe\Exception\ApiErrorException $e) {
+        \Log::error('Stripe API error while creating Checkout Session', [
+            'order_id' => $order->id,
+            'uuid'     => $order->uuid,
+            'message'  => $e->getMessage(),
+        ]);
+        return response()->json([
+            'error' => 'Erreur de paiement, veuillez réessayer dans un instant.'
+        ], 502);
+    } catch (\Throwable $e) {
+        \Log::error('Unexpected error while creating Checkout Session', [
+            'order_id' => $order->id,
+            'uuid'     => $order->uuid,
+            'message'  => $e->getMessage(),
+        ]);
+        return response()->json([
+            'error' => 'Une erreur est survenue. Merci de réessayer.'
+        ], 500);
+    }
 
-    // 5) Sauvegarde des références + statut
+    // Références + statut si la session est bien créée
     $order->stripe_checkout_session_id = $session->id;
     $order->stripe_payment_intent_id   = $session->payment_intent ?? null;
     $order->payment_provider           = 'stripe';
@@ -117,28 +139,106 @@ class CheckoutPaymentController extends Controller
 
     return response()->json(['url' => $session->url]);
 }
-
     /**
-     * Gère le retour après paiement.
+     * Page de retour succès (MVP sans webhook).
+     * En prod: laisser le webhook faire foi et ici afficher l’état.
      */
-     public function return(Request $request, Order $order)
+    public function return(Request $request, Order $order)
     {
-        // MVP : on marque payée ici (en prod, ce sera le webhook qui fera foi)
+        if ($redirect = $this->guardPaymentAccess($request, $order)) {
+            return $redirect;
+        }
+
+        // MVP: marquer payé ici (remplacé ensuite par le webhook)
         if ($order->payment_status !== 'paid') {
             $order->payment_status = 'paid';
             $order->paid_at = now();
             $order->save();
         }
 
+        // Vider panier (adapte selon ta logique: session vs DB)
+        $this->clearCartSession();
+        $this->clearDbCart($order->user_id, $order->cart_token ?? $request->session()->get('cart_token'));
+
         return Inertia::render('Checkout/Success', [
             'order' => [
-                'uuid'         => $order->uuid,
                 'id'           => $order->id,
-                'paid_at'      => optional($order->paid_at)->toDateTimeString(),
-                'total_price'  => (int) $order->total_price,
+                'uuid'         => $order->uuid,
+                'total_price'  => (float) $order->total_price,
                 'currency'     => $order->currency,
-                'payment_method' => $order->payment_method,
+                'paid_at'      => optional($order->paid_at)->toDateTimeString(),
             ],
         ]);
+    }
+
+    /**
+     * ---- Helpers de garde & panier ----
+     */
+
+    private function guardPaymentAccess(Request $request, Order $order): ?RedirectResponse
+    {
+        // Ownership: user connecté OU invité ayant ce current_order_uuid
+        if (!$this->ownsOrder($request, $order)) {
+            return redirect()->route('cart.index')
+                ->with('error', 'Accès refusé à cette commande.');
+        }
+
+        // Statut payable
+        if (!in_array($order->payment_status, ['unpaid', 'processing'], true)) {
+            return redirect()->route('orders.show', $order->uuid)
+                ->with('error', 'Cette commande n’est pas payable.');
+        }
+
+        // Adresse & méthode de livraison requises
+        if (!$order->shippingAddress || !$order->shippingMethod) {
+            return redirect()->route('checkout.address.show', $order->uuid)
+                ->with('error', 'Veuillez compléter l’adresse et la livraison.');
+        }
+
+        // Email requis
+        if (empty($order->customer_email)) {
+            return redirect()->route('checkout.address.show', $order->uuid)
+                ->with('error', 'Veuillez renseigner votre e-mail avant le paiement.');
+        }
+
+        // Montant valide
+        if (empty($order->total_price) || $toZero = (float)$order->total_price <= 0) {
+            return redirect()->route('checkout.address.show', $order->uuid)
+                ->with('error', 'Le montant de la commande est invalide.');
+        }
+
+        return null;
+    }
+
+    private function ownsOrder(Request $request, Order $order): bool
+    {
+        // Cas user connecté
+        if (auth()->check() && $order->user_id && $order->user_id === auth()->id()) {
+            return true;
+        }
+
+        // Cas invité: on a stocké l’UUID de l’ordre validé à l’étape adresse
+        $sessionOrderUuid = $request->session()->get('current_order_uuid');
+        if ($sessionOrderUuid && $sessionOrderUuid === $order->uuid) {
+            return true;
+        }
+
+        // En dernier recours, tu peux autoriser l’UUID "public" (moins strict) :
+        // return true;
+
+        return false;
+    }
+
+    private function clearCartSession(): void
+    {
+        session()->forget(['cart', 'cart_token']);
+    }
+
+    private function clearDbCart(?int $userId, ?string $cartToken): void
+    {
+        // Si tu as une table cart_items, décommente et adapte :
+        // \App\Models\CartItem::when($userId, fn($q) => $q->where('user_id', $userId))
+        //     ->when($cartToken, fn($q) => $q->orWhere('session_token', $cartToken))
+        //     ->delete();
     }
 }
