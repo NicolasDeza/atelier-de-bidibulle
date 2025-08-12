@@ -14,19 +14,68 @@ use Inertia\Inertia;
 
 class CheckoutAddressController extends Controller
 {
- public function edit(Order $order)
+public function edit(Order $order)
 {
     if ($order->payment_status === 'paid') abort(403);
 
     $order->load(['shippingAddress.city.country', 'shippingMethod', 'orderProducts.product']);
 
+    // Si l'ordre n'a pas encore d'adresse et que l'utilisateur est connecté,
+    // on essaye de préremplir avec la dernière adresse de ses commandes précédentes
+    $prefill = null;
+    if (!auth()->guest() && !$order->shippingAddress) {
+        $lastOrder = \App\Models\Order::with('shippingAddress.city.country')
+            ->where('user_id', auth()->id())
+            ->whereNotNull('ordered_at')
+            ->whereHas('shippingAddress')
+            ->latest('ordered_at')
+            ->first();
+
+        if ($lastOrder?->shippingAddress) {
+            $a = $lastOrder->shippingAddress;
+            $prefill = [
+                'full_name'      => $a->full_name,
+                'address_line_1' => $a->address_line_1,
+                'address_line_2' => $a->address_line_2,
+                'postal_code'    => $a->postal_code,
+                'country_id'     => $a->city?->country_id,
+                'city_id'        => $a->city_id,
+                'city_name'      => $a->city?->name,
+                'phone_number'   => $a->phone_number,
+            ];
+        }
+    }
+
     $countries = Country::orderBy('name')->get(['id','name','code']);
-    $methods   = ShippingMethod::orderBy('price')->get(['id','name','code','price','free_from']); // ← free_from
+    $methods   = ShippingMethod::orderBy('price')->get(['id','name','code','price','free_from']);
 
     $subtotal = $order->orderProducts->reduce(
         fn($sum, $op) => $sum + ((float)$op->price * (int)$op->quantity),
         0.0
     );
+
+    // Méthodes avec prix effectif selon free_from
+    $methodsRaw = ShippingMethod::orderBy('price')->get(['id','name','code','price','free_from']);
+    $methods = $methodsRaw->map(function ($m) use ($subtotal) {
+        $m->effective_price = (is_null($m->free_from) || $subtotal < (float)$m->free_from)
+            ? (float)$m->price
+            : 0.0;
+        return $m;
+    });
+
+    // Adresse effective (celle de l'ordre sinon préremplissage)
+    $address = $order->shippingAddress
+        ? [
+            'full_name'      => $order->shippingAddress->full_name,
+            'address_line_1' => $order->shippingAddress->address_line_1,
+            'address_line_2' => $order->shippingAddress->address_line_2,
+            'postal_code'    => $order->shippingAddress->postal_code,
+            'country_id'     => $order->shippingAddress->city?->country_id,
+            'city_id'        => $order->shippingAddress->city_id,
+            'city_name'      => $order->shippingAddress->city?->name,
+            'phone_number'   => $order->shippingAddress->phone_number,
+          ]
+        : $prefill;
 
     return Inertia::render('Checkout/Address', [
         'order' => [
@@ -36,16 +85,7 @@ class CheckoutAddressController extends Controller
             'shipping_total' => $order->shipping_total,
             'currency' => $order->currency ?? 'EUR',
         ],
-        'address' => optional($order->shippingAddress, fn($a) => [
-            'full_name'      => $a->full_name,
-            'address_line_1' => $a->address_line_1,
-            'address_line_2' => $a->address_line_2,
-            'postal_code'    => $a->postal_code,
-            'country_id'     => $a->city?->country_id,
-            'city_id'        => $a->city_id,
-            'city_name'      => $a->city?->name,
-            'phone_number'   => $a->phone_number,
-        ]),
+        'address'   => $address,
         'items'     => $order->orderProducts->map(fn($op) => [
             'id'   => $op->id,
             'name' => $op->product?->name ?? 'Produit supprimé',
@@ -57,7 +97,7 @@ class CheckoutAddressController extends Controller
         'subtotal'  => $subtotal,
         'countries' => $countries,
         'methods'   => $methods,
-        'guest'     => !\Auth::check(),
+        'guest'     => auth()->guest(),
     ]);
 }
 

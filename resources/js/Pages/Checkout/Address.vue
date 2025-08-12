@@ -30,7 +30,9 @@ const selectedMethod = computed(() =>
     props.methods.find((m) => m.id === Number(form.shipping_method_id))
 );
 
-const shipping = computed(() => Number(selectedMethod.value?.price ?? 0));
+const shipping = computed(() =>
+    Number(selectedMethod.value?.effective_price ?? 0)
+);
 const total = computed(() => Number(props.subtotal ?? 0) + shipping.value);
 const fmt = (n) => Number(n || 0).toFixed(2);
 
@@ -136,7 +138,7 @@ const save = () =>
                         </div>
                     </div>
                     <div class="font-medium">
-                        {{ Number(m.price).toFixed(2) }} €
+                        {{ Number(m.effective_price).toFixed(2) }} €
                     </div>
                 </label>
             </div>

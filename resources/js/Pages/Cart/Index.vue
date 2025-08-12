@@ -229,7 +229,7 @@ const clearCart = () => {
                         <!-- Livraison -->
                         <div class="flex justify-between">
                             <span>Livraison</span>
-                            <span>Gratuite</span>
+                            <span>Calculé à l'étape suivante</span>
                         </div>
 
                         <hr />

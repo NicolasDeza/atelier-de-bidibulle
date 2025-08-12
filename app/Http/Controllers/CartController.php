@@ -5,15 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
+use App\Models\ShippingMethod;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class CartController extends Controller
 {
     public function index()
-    {
-
-       $cartItems = [];
+{
+    $cartItems = [];
     $total = 0.0;
 
     if (auth()->check()) {
@@ -45,10 +45,9 @@ class CartController extends Controller
                 });
 
             $total = (float) $items->sum('subtotal');
-            $cartItems = $items->values()->all(); // <-- array indexé
+            $cartItems = $items->values()->all();
         }
     } else {
-        // Invité
         $sessionCart = session()->get('cart', []);
 
         $items = collect($sessionCart)
@@ -84,21 +83,21 @@ class CartController extends Controller
                     'max_quantity'  => $stock,
                 ];
             })
-            ->filter(); // enlève les null
+            ->filter();
 
-        // Réécrire la session si modifiée
         session()->put('cart', $sessionCart);
 
         $total = (float) $items->sum('subtotal');
-        $cartItems = $items->values()->all(); // <-- array indexé
+        $cartItems = $items->values()->all();
     }
 
+
     return Inertia::render('Cart/Index', [
-        'cartItems'       => $cartItems,   // Array pur
+        'cartItems'       => $cartItems,
         'total'           => $total,
         'isAuthenticated' => auth()->check(),
     ]);
-    }
+}
 
     public function add(Request $request)
     {

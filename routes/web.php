@@ -51,9 +51,15 @@ Route::get('/checkout/address/{order}', [CheckoutAddressController::class, 'edit
 Route::post('/checkout/address/{order}', [CheckoutAddressController::class, 'update'])
     ->name('checkout.address.update');
 
+
+// Checkout payment
 Route::get('/checkout/payment/{order}', [CheckoutPaymentController::class, 'show'])->name('checkout.payment.show');
-Route::post('/checkout/payment/intent', [CheckoutPaymentController::class, 'createIntent'])->name('checkout.payment.intent');
+// Route::post('/checkout/payment/intent', [CheckoutPaymentController::class, 'createIntent'])->name('checkout.payment.intent');
 Route::get('/checkout/return/{order}', [CheckoutPaymentController::class, 'return'])->name('checkout.payment.return');
+
+Route::post('/checkout/payment/session/{order}', [CheckoutPaymentController::class, 'createSession'])
+    ->name('checkout.payment.session');
+
 
 
 // Routes pour les avis
