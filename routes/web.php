@@ -42,6 +42,7 @@ Route::put('/panier-session/{key}', [CartController::class, 'updateSession'])->n
 Route::delete('/panier-session/{key}', [CartController::class, 'removeSession'])->name('cart.session.remove');
 // Route::delete('/panier-session', [CartController::class, 'clearSession'])->name('cart.session.clear');
 
+// Routes du checkout
 Route::post('/cart/checkout', [CartCheckoutController::class, 'createOrderFromCart'])
     ->name('cart.checkout'); // appelé par le bouton “Commander” du panier
 // Routes pour checkout
@@ -55,10 +56,11 @@ Route::post('/checkout/address/{order}', [CheckoutAddressController::class, 'upd
 // Checkout payment
 Route::get('/checkout/payment/{order}', [CheckoutPaymentController::class, 'show'])->name('checkout.payment.show');
 // Route::post('/checkout/payment/intent', [CheckoutPaymentController::class, 'createIntent'])->name('checkout.payment.intent');
-Route::get('/checkout/return/{order}', [CheckoutPaymentController::class, 'return'])->name('checkout.payment.return');
-
 Route::post('/checkout/payment/session/{order}', [CheckoutPaymentController::class, 'createSession'])
     ->name('checkout.payment.session');
+
+Route::get('/checkout/return/{order}', [CheckoutPaymentController::class, 'return'])->name('checkout.payment.return');
+
 
 
 
