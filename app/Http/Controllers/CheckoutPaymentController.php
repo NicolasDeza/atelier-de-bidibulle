@@ -8,235 +8,326 @@ use Inertia\Inertia;
 use Illuminate\Http\RedirectResponse;
 use Stripe\Stripe;
 use Stripe\Checkout\Session as StripeSession;
+use Illuminate\Support\Facades\Schema; // ✅ pour tester la présence de colonnes
 
 class CheckoutPaymentController extends Controller
 {
-    /**
-     * Affiche la page Paiement (verrouillée).
-     */
     public function show(Request $request, Order $order)
+    {
+        abort_if(in_array($order->payment_status, ['paid','failed','refunded'], true), 403);
+
+        if ($redirect = $this->guardPaymentAccess($request, $order)) {
+            return $redirect;
+        }
+
+        if ($order->payment_status === 'unpaid') {
+            return $this->createSession($request, $order);
+        }
+
+        return Inertia::render('Checkout/Payment', [
+            'order' => [
+                'uuid'     => $order->uuid,
+                'currency' => $order->currency,
+                'items'    => $order->items,
+            ],
+        ]);
+    }
+
+    public function startAndRedirect(Request $request, Order $order)
+    {
+        \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
+
+        $order->load(['orderProducts.product']);
+        $toCents = fn (float $eur) => (int) round($eur * 100);
+
+        $lineItems = [];
+        $itemsSubtotalCents = 0;
+
+        foreach ($order->orderProducts as $op) {
+            $name = optional($op->product)->name ?? 'Produit';
+            $unitCents = $toCents((float) $op->price);
+            $qty = (int) ($op->quantity ?: 1);
+            if ($unitCents <= 0 || $qty <= 0) continue;
+
+            $itemsSubtotalCents += $unitCents * $qty;
+
+            $lineItems[] = [
+                'price_data' => [
+                    'currency'     => 'eur',
+                    'product_data' => ['name' => $name],
+                    'unit_amount'  => $unitCents,
+                ],
+                'quantity' => $qty,
+            ];
+        }
+
+        if (empty($lineItems)) {
+            return redirect()->route('cart.index')->with('error', 'Aucun produit valide.');
+        }
+
+        $bpostCents = $itemsSubtotalCents >= 5000 ? 0 : 590;
+
+        $session = \Stripe\Checkout\Session::create(
+            [
+                'mode'       => 'payment',
+                'locale'     => 'fr',
+                'line_items' => $lineItems,
+                'shipping_address_collection' => ['allowed_countries' => ['FR','BE']],
+                'phone_number_collection'     => ['enabled' => true],
+                'shipping_options' => [
+                    [
+                        'shipping_rate_data' => [
+                            'type'         => 'fixed_amount',
+                            'fixed_amount' => ['amount' => 0, 'currency' => 'eur'],
+                            'display_name' => 'Remise en main propre',
+                        ],
+                    ],
+                    [
+                        'shipping_rate_data' => [
+                            'type'         => 'fixed_amount',
+                            'fixed_amount' => ['amount' => $bpostCents, 'currency' => 'eur'],
+                            'display_name' => 'Bpost (2–4 jours)',
+                            'delivery_estimate' => [
+                                'minimum' => ['unit' => 'business_day', 'value' => 2],
+                                'maximum' => ['unit' => 'business_day', 'value' => 4],
+                            ],
+                        ],
+                    ],
+                ],
+                'customer_email' => $order->customer_email,
+                'success_url'    => route('checkout.payment.return', $order).'?session_id={CHECKOUT_SESSION_ID}',
+                'cancel_url'     => route('cart.index'),
+                'metadata'       => [
+                    'order_id'   => (string) $order->id,
+                    'order_uuid' => (string) $order->uuid,
+                ],
+            ],
+            ['idempotency_key' => 'order-'.$order->uuid.'-create-session']
+        );
+
+        $order->stripe_checkout_session_id = $session->id;
+        $order->payment_status             = 'processing';
+        $order->save();
+
+        $url = $session->url;
+        return $request->header('X-Inertia') ? \Inertia\Inertia::location($url) : redirect()->away($url);
+    }
+
+    public function createSession(Request $request, Order $order)
     {
         if ($redirect = $this->guardPaymentAccess($request, $order)) {
             return $redirect;
         }
 
-        // On envoie UNIQUEMENT le nécessaire à la vue
-        return Inertia::render('Checkout/Payment', [
-            'order' => [
-                'uuid'           => $order->uuid,
-                'customer_email' => $order->customer_email,
-                'currency'       => $order->currency,
-                // adapte: si tu stockes en centimes, mets (int); si en euros DECIMAL, (float)
-                'shipping_total' => (float) $order->shipping_total,
-                'total_price'    => (float) $order->total_price,
-                'items'          => $order->items, // accessor du modèle
-            ],
-        ]);
-    }
+        Stripe::setApiKey(config('services.stripe.secret'));
+        $order->load(['orderProducts.product']);
 
-    /**
-     * Crée la session Stripe Checkout (avec re-vérification des gardes).
-     */
-    public function createSession(Request $request, Order $order)
-{
-    if ($redirect = $this->guardPaymentAccess($request, $order)) {
-        return $redirect;
-    }
+        $toCents = fn (float $eur) => (int) round($eur * 100);
 
-    Stripe::setApiKey(config('services.stripe.secret'));
+        $lineItems = [];
+        $itemsSubtotalCents = 0;
 
-    // Relations pour éventuels fallbacks
-    $order->load(['orderProducts.product']);
+        foreach ($order->orderProducts as $op) {
+            $name = optional($op->product)->name ?? 'Produit';
+            $unitCents = $toCents((float) $op->price);
+            $qty = (int) ($op->quantity ?: 1);
+            if ($unitCents <= 0 || $qty <= 0) continue;
 
-    // Helper: euros -> centimes (si <=100 on considère euros)
-    $toCents = fn ($v) => (int) ($v > 100 ? $v : round((float)$v * 100));
+            $itemsSubtotalCents += $unitCents * $qty;
 
-    $lineItems = [];
-
-    foreach ($order->orderProducts as $op) {
-        $unit = $op->unit_price ?? optional($op->product)->price ?? 0;
-        $amountCents = $toCents($unit);
-        if ($amountCents <= 0) continue;
-
-        $lineItems[] = [
-            'price_data' => [
-                'currency'     => strtolower($order->currency ?? 'EUR'),
-                'product_data' => ['name' => $op->name ?? (optional($op->product)->name ?? 'Produit')],
-                'unit_amount'  => $amountCents,
-            ],
-            'quantity' => (int) ($op->quantity ?: 1),
-        ];
-    }
-
-    $shippingCents = $toCents($order->shipping_total ?? 0);
-    if ($shippingCents > 0) {
-        $lineItems[] = [
-            'price_data' => [
-                'currency'     => strtolower($order->currency ?? 'EUR'),
-                'product_data' => ['name' => 'Frais de livraison'],
-                'unit_amount'  => $shippingCents,
-            ],
-            'quantity' => 1,
-        ];
-    }
-
-    if (empty($lineItems)) {
-        $lineItems[] = [
-            'price_data' => [
-                'currency'     => strtolower($order->currency ?? 'EUR'),
-                'product_data' => ['name' => 'Commande #' . $order->id],
-                'unit_amount'  => $toCents($order->total_price ?? 0),
-            ],
-            'quantity' => 1,
-        ];
-    }
-
-    try {
-        // Idempotency pour éviter les doubles sessions si double-clic (optionnel mais pro)
-        $session = StripeSession::create(
-            [
-                'mode'           => 'payment',
-                'line_items'     => $lineItems,
-                'customer_email' => $order->customer_email,
-                'locale'         => 'fr',
-                'success_url'    => route('checkout.payment.return', $order) . '?session_id={CHECKOUT_SESSION_ID}',
-                'cancel_url'     => route('checkout.payment.show', $order),
-                'metadata'       => [
-                    'order_id'       => (string) $order->id,
-                    'order_uuid'     => (string) $order->uuid,
-                    'cart_token'     => $request->session()->get('cart_token'),
-                    'customer_email' => (string) $order->customer_email,
+            $lineItems[] = [
+                'price_data' => [
+                    'currency'     => 'eur',
+                    'product_data' => ['name' => $name],
+                    'unit_amount'  => $unitCents,
                 ],
-            ],
-            ['idempotency_key' => 'order-'.$order->uuid.'-create-session']
-        );
-    } catch (\Stripe\Exception\ApiErrorException $e) {
-        \Log::error('Stripe API error while creating Checkout Session', [
-            'order_id' => $order->id,
-            'uuid'     => $order->uuid,
-            'message'  => $e->getMessage(),
-        ]);
-        return response()->json([
-            'error' => 'Erreur de paiement, veuillez réessayer dans un instant.'
-        ], 502);
-    } catch (\Throwable $e) {
-        \Log::error('Unexpected error while creating Checkout Session', [
-            'order_id' => $order->id,
-            'uuid'     => $order->uuid,
-            'message'  => $e->getMessage(),
-        ]);
-        return response()->json([
-            'error' => 'Une erreur est survenue. Merci de réessayer.'
-        ], 500);
+                'quantity' => $qty,
+            ];
+        }
+
+        if (empty($lineItems)) {
+            return redirect()->route('cart.index')->with('error', 'Aucun produit valide.');
+        }
+
+        $bpostCents = $itemsSubtotalCents >= 5000 ? 0 : 590;
+
+        try {
+            $session = StripeSession::create(
+                [
+                    'mode'       => 'payment',
+                    'locale'     => 'fr',
+                    'line_items' => $lineItems,
+                    'shipping_address_collection' => ['allowed_countries' => ['FR','BE']],
+                    'phone_number_collection'     => ['enabled' => true],
+                    'shipping_options' => [
+                        [
+                            'shipping_rate_data' => [
+                                'type'         => 'fixed_amount',
+                                'fixed_amount' => ['amount' => 0, 'currency' => 'eur'],
+                                'display_name' => 'Remise en main propre',
+                            ],
+                        ],
+                        [
+                            'shipping_rate_data' => [
+                                'type'         => 'fixed_amount',
+                                'fixed_amount' => ['amount' => $bpostCents, 'currency' => 'eur'],
+                                'display_name' => 'Bpost (2–4 jours)',
+                                'delivery_estimate' => [
+                                    'minimum' => ['unit' => 'business_day', 'value' => 2],
+                                    'maximum' => ['unit' => 'business_day', 'value' => 4],
+                                ],
+                            ],
+                        ],
+                    ],
+                    'customer_email' => $order->customer_email,
+                    'success_url'    => route('checkout.payment.return', $order).'?session_id={CHECKOUT_SESSION_ID}',
+                    'cancel_url'     => route('cart.index'),
+                    'metadata'       => [
+                        'order_id'   => (string) $order->id,
+                        'order_uuid' => (string) $order->uuid,
+                    ],
+                ],
+                ['idempotency_key' => 'order-'.$order->uuid.'-create-session']
+            );
+
+            $order->stripe_checkout_session_id = $session->id;
+            $order->payment_status             = 'processing';
+            $order->save();
+
+            $url = $session->url;
+            return $request->header('X-Inertia') ? Inertia::location($url) : redirect()->away($url);
+
+        } catch (\Exception $e) {
+            \Log::error('Stripe session creation failed', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+            ]);
+            return redirect()->back()->with('error', 'Erreur lors de la création du paiement.');
+        }
     }
 
-    // Références + statut si la session est bien créée
-    $order->stripe_checkout_session_id = $session->id;
-    $order->stripe_payment_intent_id   = $session->payment_intent ?? null;
-    $order->payment_provider           = 'stripe';
-    $order->payment_status             = 'processing';
-    $order->save();
-
-    return response()->json(['url' => $session->url]);
-}
-    /**
-     * Page de retour succès (MVP sans webhook).
-     * En prod: laisser le webhook faire foi et ici afficher l’état.
-     */
     public function return(Request $request, Order $order)
     {
         if ($redirect = $this->guardPaymentAccess($request, $order)) {
             return $redirect;
         }
 
-        // MVP: marquer payé ici (remplacé ensuite par le webhook)
-        if ($order->payment_status !== 'paid') {
-            $order->payment_status = 'paid';
-            $order->paid_at = now();
-            $order->save();
+        $shipping = null;
+        $address  = null;
+
+        $sessionId = $request->query('session_id');
+        if ($sessionId) {
+            Stripe::setApiKey(config('services.stripe.secret'));
+
+            try {
+                $session = StripeSession::retrieve([
+                    'id'     => $sessionId,
+                    'expand' => ['shipping_cost.shipping_rate', 'shipping_details', 'customer_details'],
+                ]);
+
+                // Mode de livraison
+                $shipping = [
+                    'label'        => optional($session->shipping_cost->shipping_rate)->display_name,
+                    'amount_total' => $session->shipping_cost->amount_total ?? 0, // cts
+                ];
+
+                // Adresse de livraison
+                if ($session->shipping_details && $session->shipping_details->address) {
+                    $address = [
+                        'name'        => $session->shipping_details->name,
+                        'line1'       => $session->shipping_details->address->line1,
+                        'line2'       => $session->shipping_details->address->line2,
+                        'postal_code' => $session->shipping_details->address->postal_code,
+                        'city'        => $session->shipping_details->address->city,
+                        'country'     => $session->shipping_details->address->country,
+                        'phone'       => $session->shipping_details->phone,
+                    ];
+                }
+
+                // ✅ petites améliorations « sans casser »
+                if (empty($order->customer_email) && !empty($session->customer_details?->email)) {
+                    $order->customer_email = $session->customer_details->email;
+                }
+
+                if ($order->payment_status !== 'paid') {
+                    $order->payment_status           = 'paid';
+                    $order->paid_at                  = now();
+                    $order->ordered_at               = $order->ordered_at ?: now(); // si pas encore posé
+                    $order->stripe_payment_intent_id = $session->payment_intent ?? $order->stripe_payment_intent_id;
+                    // Montants en € (BDD decimal(8,2))
+                    if (isset($shipping['amount_total'])) {
+                        $order->shipping_total = $shipping['amount_total'] / 100;
+                    }
+                    if (isset($session->amount_total)) {
+                        $order->total_price = $session->amount_total / 100;
+                    }
+
+                    // 🔖 Sauvegarde optionnelle (ne plante pas si colonnes absentes)
+                    if (Schema::hasColumn('orders', 'shipping_method_label') && !empty($shipping['label'])) {
+                        $order->shipping_method_label = $shipping['label'];
+                    }
+                    if (Schema::hasColumn('orders', 'shipping_address_json') && $session->shipping_details) {
+                        $order->shipping_address_json = json_encode($session->shipping_details);
+                    }
+
+                    $order->save();
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Stripe return: unable to retrieve session', [
+                    'order_id' => $order->id,
+                    'error'    => $e->getMessage(),
+                ]);
+            }
+        } else {
+            if ($order->payment_status !== 'paid') {
+                $order->payment_status = 'paid';
+                $order->paid_at        = now();
+                $order->ordered_at     = $order->ordered_at ?: now();
+                $order->save();
+            }
         }
 
-        // Vider panier (adapte selon ta logique: session vs DB)
         $this->clearCartSession();
         $this->clearDbCart($order->user_id, $order->cart_token ?? $request->session()->get('cart_token'));
 
         return Inertia::render('Checkout/Success', [
-            'order' => [
-                'id'           => $order->id,
-                'uuid'         => $order->uuid,
-                'total_price'  => (float) $order->total_price,
-                'currency'     => $order->currency,
-                'paid_at'      => optional($order->paid_at)->toDateTimeString(),
+            'order'    => [
+                'id'          => $order->id,
+                'uuid'        => $order->uuid,
+                'total_price' => (float) $order->total_price,
+                'currency'    => $order->currency,
+                'paid_at'     => optional($order->paid_at)->toDateTimeString(),
             ],
+            'shipping' => $shipping,
+            'address'  => $address,
         ]);
     }
 
-    /**
-     * ---- Helpers de garde & panier ----
-     */
-
     private function guardPaymentAccess(Request $request, Order $order): ?RedirectResponse
     {
-        // Ownership: user connecté OU invité ayant ce current_order_uuid
-        if (!$this->ownsOrder($request, $order)) {
-            return redirect()->route('cart.index')
-                ->with('error', 'Accès refusé à cette commande.');
+        if (auth()->check() && $order->user_id && $order->user_id !== auth()->id()) {
+            return redirect()->route('cart.index')->with('error', 'Accès refusé.');
         }
 
-        // Statut payable
+        $sessionOrderUuid = $request->session()->get('current_order_uuid');
+        if (!auth()->check() && (!$sessionOrderUuid || $sessionOrderUuid !== $order->uuid)) {
+            return redirect()->route('cart.index')->with('error', 'Commande introuvable.');
+        }
+
         if (!in_array($order->payment_status, ['unpaid', 'processing'], true)) {
-            return redirect()->route('orders.show', $order->uuid)
-                ->with('error', 'Cette commande n’est pas payable.');
-        }
-
-        // Adresse & méthode de livraison requises
-        if (!$order->shippingAddress || !$order->shippingMethod) {
-            return redirect()->route('checkout.address.show', $order->uuid)
-                ->with('error', 'Veuillez compléter l’adresse et la livraison.');
-        }
-
-        // Email requis
-        if (empty($order->customer_email)) {
-            return redirect()->route('checkout.address.show', $order->uuid)
-                ->with('error', 'Veuillez renseigner votre e-mail avant le paiement.');
-        }
-
-        // Montant valide
-        if (empty($order->total_price) || $toZero = (float)$order->total_price <= 0) {
-            return redirect()->route('checkout.address.show', $order->uuid)
-                ->with('error', 'Le montant de la commande est invalide.');
+            return redirect()->route('cart.index')->with('error', 'Commande non payable.');
         }
 
         return null;
     }
 
-    private function ownsOrder(Request $request, Order $order): bool
-    {
-        // Cas user connecté
-        if (auth()->check() && $order->user_id && $order->user_id === auth()->id()) {
-            return true;
-        }
-
-        // Cas invité: on a stocké l’UUID de l’ordre validé à l’étape adresse
-        $sessionOrderUuid = $request->session()->get('current_order_uuid');
-        if ($sessionOrderUuid && $sessionOrderUuid === $order->uuid) {
-            return true;
-        }
-
-        // En dernier recours, tu peux autoriser l’UUID "public" (moins strict) :
-        // return true;
-
-        return false;
-    }
-
     private function clearCartSession(): void
     {
-        session()->forget(['cart', 'cart_token']);
+        session()->forget(['cart', 'cart_token', 'current_order_uuid']);
     }
 
     private function clearDbCart(?int $userId, ?string $cartToken): void
     {
-        // Si tu as une table cart_items, décommente et adapte :
         // \App\Models\CartItem::when($userId, fn($q) => $q->where('user_id', $userId))
         //     ->when($cartToken, fn($q) => $q->orWhere('session_token', $cartToken))
         //     ->delete();

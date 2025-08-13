@@ -33,10 +33,11 @@ class Order extends Model
     ];
 
     protected $casts = [
-        'shipping_total' => 'integer',
-        'total_price'    => 'integer',
+        'shipping_total' => 'decimal:2',
+        'total_price'    => 'decimal:2',
         'ordered_at'     => 'datetime',
         'paid_at'        => 'datetime',
+        'shipping_address_json' => 'array',
     ];
 
     // On expose un attribut virtuel "items" pour la vue Payment.vue

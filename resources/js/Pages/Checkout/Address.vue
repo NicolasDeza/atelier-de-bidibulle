@@ -1,52 +1,67 @@
-<script setup>
+<!-- <script setup>
 import { useForm } from "@inertiajs/vue3";
 import { computed } from "vue";
 
 const props = defineProps({
-    order: Object,
-    address: Object,
-    methods: Array,
-    countries: Array,
-    guest: Boolean,
-    errors: Object,
-    items: Array,
-    subtotal: Number,
+    order: { type: Object, required: true },
+    address: { type: Object, default: null },
+    methods: { type: Array, default: () => [] },
+    countries: { type: Array, default: () => [] },
+    items: { type: Array, default: () => [] },
+    subtotal: { type: Number, default: 0 },
+    guest: { type: Boolean, default: false },
 });
 
+const orderUuid = computed(() => props.order?.uuid ?? null);
+
 const form = useForm({
-    customer_email: props.order?.customer_email ?? "",
+
     full_name: props.address?.full_name ?? "",
+    phone_number: props.address?.phone_number ?? "",
     address_line_1: props.address?.address_line_1 ?? "",
     address_line_2: props.address?.address_line_2 ?? "",
     postal_code: props.address?.postal_code ?? "",
-    country_id: props.address?.country_id ?? props.countries?.[0]?.id ?? null,
+
     city_name: props.address?.city_name ?? "",
-    phone_number: props.address?.phone_number ?? "",
-    shipping_method_id:
-        props.order?.shipping_method_id ?? props.methods?.[0]?.id ?? null,
+
+    shipping_method_id: props.order?.shipping_method_id ?? null,
+
+    customer_email: props.guest ? props.order?.customer_email ?? "" : null,
 });
 
-const selectedMethod = computed(() =>
-    props.methods.find((m) => m.id === Number(form.shipping_method_id))
+const selectedMethod = computed(
+    () => props.methods.find((m) => m.id === form.shipping_method_id) ?? null
 );
-
 const shipping = computed(() =>
     Number(selectedMethod.value?.effective_price ?? 0)
 );
 const total = computed(() => Number(props.subtotal ?? 0) + shipping.value);
-const fmt = (n) => Number(n || 0).toFixed(2);
 
-const save = () =>
-    form.post(route("checkout.address.update", props.order.id), {
+function fmt(v) {
+    const n = Number(v ?? 0);
+    return n.toFixed(2);
+}
+
+function saveDraft() {
+    if (!orderUuid.value) return console.error("UUID de commande manquant");
+    form.post(route("checkout.address.update", { order: orderUuid.value }), {
         preserveScroll: true,
     });
-</script>
+}
 
-<template>
+function finalize() {
+    if (!orderUuid.value) return console.error("UUID de commande manquant");
+    form.post(route("checkout.address.finalize", { order: orderUuid.value }), {
+        preserveScroll: false,
+        onSuccess: () => {},
+    });
+}
+</script> -->
+
+<!-- <template>
     <div class="max-w-3xl mx-auto p-6 space-y-6">
         <h1 class="text-2xl font-semibold">Adresse & Livraison</h1>
 
-        <!-- Email invité -->
         <section v-if="guest" class="bg-white rounded-xl p-4 shadow">
             <label class="text-sm">Email</label>
             <input
@@ -54,12 +69,14 @@ const save = () =>
                 type="email"
                 class="w-full border rounded-lg p-2"
             />
-            <p v-if="errors.customer_email" class="text-sm text-red-600 mt-1">
-                {{ errors.customer_email }}
+            <p
+                v-if="form.errors.customer_email"
+                class="text-sm text-red-600 mt-1"
+            >
+                {{ form.errors.customer_email }}
             </p>
         </section>
 
-        <!-- Adresse -->
         <section class="bg-white rounded-xl p-4 shadow space-y-4">
             <h2 class="font-medium">Adresse de livraison</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -95,25 +112,26 @@ const save = () =>
                     placeholder="Ville"
                     class="border p-2 rounded"
                 />
-
-                <select v-model="form.country_id" class="border p-2 rounded">
-                    <option v-for="c in countries" :key="c.id" :value="c.id">
-                        {{ c.name }}
-                    </option>
-                </select>
             </div>
 
             <div class="text-sm text-red-600 space-y-1">
-                <p v-if="errors.full_name">{{ errors.full_name }}</p>
-                <p v-if="errors.phone_number">{{ errors.phone_number }}</p>
-                <p v-if="errors.address_line_1">{{ errors.address_line_1 }}</p>
-                <p v-if="errors.postal_code">{{ errors.postal_code }}</p>
-                <p v-if="errors.city_name">{{ errors.city_name }}</p>
-                <p v-if="errors.country_id">{{ errors.country_id }}</p>
+                <p v-if="form.errors.full_name">{{ form.errors.full_name }}</p>
+                <p v-if="form.errors.phone_number">
+                    {{ form.errors.phone_number }}
+                </p>
+                <p v-if="form.errors.address_line_1">
+                    {{ form.errors.address_line_1 }}
+                </p>
+                <p v-if="form.errors.postal_code">
+                    {{ form.errors.postal_code }}
+                </p>
+                <p v-if="form.errors.city_name">{{ form.errors.city_name }}</p>
+                <p v-if="form.errors.country_id">
+                    {{ form.errors.country_id }}
+                </p>
             </div>
         </section>
 
-        <!-- Mode de livraison -->
         <section class="bg-white rounded-xl p-4 shadow space-y-3">
             <h2 class="font-medium">Mode de livraison</h2>
             <div class="space-y-2">
@@ -143,14 +161,13 @@ const save = () =>
                 </label>
             </div>
             <p
-                v-if="errors.shipping_method_id"
+                v-if="form.errors.shipping_method_id"
                 class="text-sm text-red-600 mt-1"
             >
-                {{ errors.shipping_method_id }}
+                {{ form.errors.shipping_method_id }}
             </p>
         </section>
 
-        <!-- Récapitulatif (unique) -->
         <section
             v-if="items?.length"
             class="bg-white rounded-xl p-4 shadow space-y-3"
@@ -188,19 +205,18 @@ const save = () =>
             </div>
         </section>
 
-        <!-- Footer actions -->
         <div class="flex items-center justify-between">
             <div class="text-sm text-gray-700">
                 Frais de livraison :
                 <span class="font-semibold">{{ fmt(shipping) }} €</span>
             </div>
             <button
-                @click="save"
-                :disabled="form.processing"
+                type="button"
                 class="px-4 py-2 rounded-lg bg-black text-white disabled:opacity-50"
+                @click.prevent="finalize"
             >
                 Continuer
             </button>
         </div>
     </div>
-</template>
+</template> -->

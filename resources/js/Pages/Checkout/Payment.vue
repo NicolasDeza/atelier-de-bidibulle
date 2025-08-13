@@ -1,10 +1,10 @@
-$
+<!-- $
 <script setup>
 import { ref } from "vue";
 import axios from "axios";
 
 const props = defineProps({
-    order: Object, // envoyé depuis Laravel avec les infos commande (euros)
+    order: Object,
 });
 
 const loading = ref(false);
@@ -21,8 +21,7 @@ const payWithStripe = async () => {
             route("checkout.payment.session", { order: props.order.uuid })
         );
         if (data.url) {
-            window.location.href = data.url; // Redirection Stripe Checkout
-        } else {
+            window.location.href = data.url;
             errorMessage.value = "Impossible d'obtenir le lien de paiement.";
             loading.value = false;
         }
@@ -38,7 +37,6 @@ const payWithStripe = async () => {
     <div class="max-w-3xl mx-auto p-6">
         <h1 class="text-2xl font-bold mb-6">Paiement</h1>
 
-        <!-- Récapitulatif -->
         <div class="border rounded-lg p-4 mb-6 bg-white shadow-sm">
             <h2 class="text-lg font-semibold mb-3">Récapitulatif commande</h2>
 
@@ -63,10 +61,8 @@ const payWithStripe = async () => {
             </div>
         </div>
 
-        <!-- Erreur -->
         <p v-if="errorMessage" class="text-red-600 mb-4">{{ errorMessage }}</p>
 
-        <!-- Bouton -->
         <button
             @click="payWithStripe"
             :disabled="loading"
@@ -76,4 +72,4 @@ const payWithStripe = async () => {
             <span v-else>Payer avec Stripe</span>
         </button>
     </div>
-</template>
+</template> -->

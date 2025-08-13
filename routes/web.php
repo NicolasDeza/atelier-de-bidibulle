@@ -12,6 +12,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\CheckoutAddressController;
 use App\Http\Controllers\CheckoutPaymentController;
 use App\Http\Controllers\CartCheckoutController;
+use App\Http\Controllers\StripeWebhookController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
@@ -42,28 +43,28 @@ Route::put('/panier-session/{key}', [CartController::class, 'updateSession'])->n
 Route::delete('/panier-session/{key}', [CartController::class, 'removeSession'])->name('cart.session.remove');
 // Route::delete('/panier-session', [CartController::class, 'clearSession'])->name('cart.session.clear');
 
-// Routes du checkout
+
+//! CHECKOUT
+
+// 1) Du panier → créer la commande
 Route::post('/cart/checkout', [CartCheckoutController::class, 'createOrderFromCart'])
-    ->name('cart.checkout'); // appelé par le bouton “Commander” du panier
-// Routes pour checkout
-Route::get('/checkout/address/{order}', [CheckoutAddressController::class, 'edit'])
-    ->name('checkout.address.edit');
+    ->name('cart.checkout');
 
-Route::post('/checkout/address/{order}', [CheckoutAddressController::class, 'update'])
-    ->name('checkout.address.update');
+// 2) Afficher Stripe Checkout (show = compat avec ton code actuel)
+Route::get('/checkout/payment/{order}', [CheckoutPaymentController::class, 'startAndRedirect'])
+    ->name('checkout.payment.show');
 
+// 3) Variante “start” (peut servir si on change le flux)
+Route::get('/checkout/payment/start/{order}', [CheckoutPaymentController::class, 'startAndRedirect'])
+    ->name('checkout.payment.start');
 
-// Checkout payment
-Route::get('/checkout/payment/{order}', [CheckoutPaymentController::class, 'show'])->name('checkout.payment.show');
-// Route::post('/checkout/payment/intent', [CheckoutPaymentController::class, 'createIntent'])->name('checkout.payment.intent');
-Route::post('/checkout/payment/session/{order}', [CheckoutPaymentController::class, 'createSession'])
-    ->name('checkout.payment.session');
-
-Route::get('/checkout/return/{order}', [CheckoutPaymentController::class, 'return'])->name('checkout.payment.return');
+// 4) Retour après succès ou annulation
+Route::get('/checkout/return/{order}', [CheckoutPaymentController::class, 'return'])
+    ->name('checkout.payment.return');
 
 
 
-
+    //! ROUTE AVIS
 // Routes pour les avis
 Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
 Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
@@ -71,6 +72,19 @@ Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('
 
 // Routes pour les catégories
 Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
+Route::get('/categorie/{category}', [CategoryController::class, 'show'])->name('categories.show');
+
+
+
+Route::middleware([
+    'auth:sanctum',
+    config('jetstream.auth_session'),
+    'verified',
+])->group(function () {
+    Route::get('/dashboard', function () {
+        return Inertia::render('Dashboard');
+    })->name('dashboard');
+});
 Route::get('/categorie/{category}', [CategoryController::class, 'show'])->name('categories.show');
 
 

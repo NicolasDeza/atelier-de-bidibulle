@@ -5,224 +5,214 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\ShippingAddress;
 use App\Models\ShippingMethod;
-use App\Models\Country;
 use App\Models\City;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
-
 class CheckoutAddressController extends Controller
 {
-public function edit(Order $order)
-{
-    if ($order->payment_status === 'paid') abort(403);
-
-    $order->load(['shippingAddress.city.country', 'shippingMethod', 'orderProducts.product']);
-
-    // Si l'ordre n'a pas encore d'adresse et que l'utilisateur est connecté,
-    // on essaye de préremplir avec la dernière adresse de ses commandes précédentes
-    $prefill = null;
-    if (!auth()->guest() && !$order->shippingAddress) {
-        $lastOrder = \App\Models\Order::with('shippingAddress.city.country')
-            ->where('user_id', auth()->id())
-            ->whereNotNull('ordered_at')
-            ->whereHas('shippingAddress')
-            ->latest('ordered_at')
-            ->first();
-
-        if ($lastOrder?->shippingAddress) {
-            $a = $lastOrder->shippingAddress;
-            $prefill = [
-                'full_name'      => $a->full_name,
-                'address_line_1' => $a->address_line_1,
-                'address_line_2' => $a->address_line_2,
-                'postal_code'    => $a->postal_code,
-                'country_id'     => $a->city?->country_id,
-                'city_id'        => $a->city_id,
-                'city_name'      => $a->city?->name,
-                'phone_number'   => $a->phone_number,
-            ];
-        }
-    }
-
-    $countries = Country::orderBy('name')->get(['id','name','code']);
-    $methods   = ShippingMethod::orderBy('price')->get(['id','name','code','price','free_from']);
-
-    $subtotal = $order->orderProducts->reduce(
-        fn($sum, $op) => $sum + ((float)$op->price * (int)$op->quantity),
-        0.0
-    );
-
-    // Méthodes avec prix effectif selon free_from
-    $methodsRaw = ShippingMethod::orderBy('price')->get(['id','name','code','price','free_from']);
-    $methods = $methodsRaw->map(function ($m) use ($subtotal) {
-        $m->effective_price = (is_null($m->free_from) || $subtotal < (float)$m->free_from)
-            ? (float)$m->price
-            : 0.0;
-        return $m;
-    });
-
-    // Adresse effective (celle de l'ordre sinon préremplissage)
-    $address = $order->shippingAddress
-        ? [
-            'full_name'      => $order->shippingAddress->full_name,
-            'address_line_1' => $order->shippingAddress->address_line_1,
-            'address_line_2' => $order->shippingAddress->address_line_2,
-            'postal_code'    => $order->shippingAddress->postal_code,
-            'country_id'     => $order->shippingAddress->city?->country_id,
-            'city_id'        => $order->shippingAddress->city_id,
-            'city_name'      => $order->shippingAddress->city?->name,
-            'phone_number'   => $order->shippingAddress->phone_number,
-          ]
-        : $prefill;
-
-    return Inertia::render('Checkout/Address', [
-        'order' => [
-            'id' => $order->id,
-            'customer_email' => $order->customer_email,
-            'shipping_method_id' => $order->shipping_method_id,
-            'shipping_total' => $order->shipping_total,
-            'currency' => $order->currency ?? 'EUR',
-        ],
-        'address'   => $address,
-        'items'     => $order->orderProducts->map(fn($op) => [
-            'id'   => $op->id,
-            'name' => $op->product?->name ?? 'Produit supprimé',
-            'qty'  => (int)$op->quantity,
-            'unit' => (float)$op->price,
-            'line' => (float)$op->price * (int)$op->quantity,
-            'image'=> $op->product?->image,
-        ]),
-        'subtotal'  => $subtotal,
-        'countries' => $countries,
-        'methods'   => $methods,
-        'guest'     => auth()->guest(),
-    ]);
-}
-
-public function update(Request $request, Order $order)
-{
-    $rules = [
-        'shipping_method_id' => ['required','exists:shipping_methods,id'],
-        'full_name'          => ['required','string','max:255'],
-        'address_line_1'     => ['required','string','max:255'],
-        'address_line_2'     => ['nullable','string','max:255'],
-        'postal_code'        => ['required','string','max:20'],
-        'country_id'         => ['required','exists:countries,id'],
-        'city_name'          => ['required','string','max:190'],
-        'phone_number'       => ['required','string','max:30'],
-    ];
-    if (!\Auth::check()) $rules['customer_email'] = ['required','email','max:255'];
-
-    $data = $request->validate($rules);
-
-    if (!\Auth::check()) $order->customer_email = $data['customer_email'];
-
-    // ville
-    $city = City::firstOrCreate(
-        ['name' => $data['city_name'], 'country_id' => $data['country_id']]
-    );
-
-    // adresse
-    $addr = $order->shippingAddress ?? new ShippingAddress(['order_id' => $order->id]);
-    $addr->fill([
-        'full_name'      => $data['full_name'],
-        'address_line_1' => $data['address_line_1'],
-        'address_line_2' => $data['address_line_2'] ?? null,
-        'postal_code'    => $data['postal_code'],
-        'city_id'        => $city->id,
-        'phone_number'   => $data['phone_number'],
-    ])->save();
-
-    // calcul sous-total
-    $order->load('orderProducts');
-    $subtotal = $order->orderProducts->reduce(
-        fn($sum, $op) => $sum + ((float)$op->price * (int)$op->quantity),
-        0.0
-    );
-
-    // méthode + règle free_from
-    $method = ShippingMethod::findOrFail($data['shipping_method_id']);
-    $shipping = (float)$method->price;
-    if ($method->free_from !== null && $subtotal >= (float)$method->free_from) {
-        $shipping = 0.0;
-    }
-
-    // snapshot sur la commande
-    $order->shipping_method_id = $method->id;
-    $order->shipping_total     = $shipping;
-    $order->save();
-
-    return back()->with('success', 'Adresse et livraison enregistrées.');
-}
-
-
-     public function createOrderFromCart(Request $request)
+    public function edit(Order $order)
     {
-        // 1) Récupération du panier
-        if (Auth::check()) {
-            $cart = Cart::with('items.product')->where('user_id', Auth::id())->first();
-            if (!$cart || $cart->items->isEmpty()) {
-                return back()->with('error', 'Votre panier est vide.');
-            }
-        } else {
-            // 📝 SI TU AS UN PANIER EN SESSION POUR INVITÉ :
-            $sessionItems = session('cart.items', []); // [{product_id, quantity}, ...]
-            if (empty($sessionItems)) return back()->with('error', 'Votre panier est vide.');
+        abort_if(in_array($order->payment_status, ['processing','paid','failed','refunded'], true), 403);
 
-            // hydrate un “cart virtual” pour la suite
-            $cart = (object)[
-                'items' => collect($sessionItems)->map(function($it){
-                    $p = Product::find($it['product_id']);
-                    return (object)['product' => $p, 'quantity' => (int)$it['quantity']];
-                }),
-            ];
+        // plus de country dans les relations
+        $order->load(['shippingAddress.city', 'shippingMethod', 'orderProducts.product']);
+
+        // Prefill simple (sans country)
+        $prefill = null;
+        if (!auth()->guest() && !$order->shippingAddress) {
+            $lastOrder = Order::with('shippingAddress.city')
+                ->where('user_id', auth()->id())
+                ->whereNotNull('ordered_at')
+                ->whereHas('shippingAddress')
+                ->latest('ordered_at')
+                ->first();
+
+            if ($lastOrder?->shippingAddress) {
+                $a = $lastOrder->shippingAddress;
+                $prefill = [
+                    'full_name'      => $a->full_name,
+                    'address_line_1' => $a->address_line_1,
+                    'address_line_2' => $a->address_line_2,
+                    'postal_code'    => $a->postal_code,
+                    'city_id'        => $a->city_id,
+                    'city_name'      => $a->city?->name,
+                    'phone_number'   => $a->phone_number,
+                ];
+            }
         }
 
-        // 2) Vérifs & calcul du total
-        $total = 0;
-        foreach ($cart->items as $item) {
-            if (!$item->product) return back()->with('error', 'Un produit du panier n’existe plus.');
-            $line = (float)$item->product->price * (int)$item->quantity;
-            $total += $line;
-        }
+        $methodsRaw = ShippingMethod::orderBy('price')->get(['id','name','code','price','free_from']);
 
-        // 3) Création de la commande + items (snapshot)
-        $order = DB::transaction(function() use ($cart, $total) {
-            $order = new Order();
-            if (Auth::check()) $order->user_id = Auth::id();
-            $order->status = 'pending';
-            $order->shipping_status = 'pending';
-            $order->payment_status = 'unpaid';
-            $order->payment_method = 'stripe'; // par défaut
-            $order->currency = 'EUR';
-            $order->total_price = $total;       // total produits TTC
-            $order->shipping_total = 0;         // sera fixé sur la page adresse/livraison
-            $order->save();
+        // sous-total (euros) à l’affichage
+        $subtotal = $order->orderProducts->reduce(
+            fn($sum, $op) => $sum + ((float)$op->price * (int)$op->quantity),
+            0.0
+        );
 
-            foreach ($cart->items as $item) {
-                OrderProduct::create([
-                    'order_id'   => $order->id,
-                    'product_id' => $item->product->id,
-                    'quantity'   => (int)$item->quantity,
-                    'price'      => $item->product->price, // snapshot du prix unitaire (decimal)
-                    // (optionnel) ajoute des colonnes snapshot si tu les as: product_name, sku…
-                ]);
-            }
-
-            return $order;
+        // Méthodes avec prix effectif selon free_from (euros pour l’UI)
+        $methods = $methodsRaw->map(function ($m) use ($subtotal) {
+            $m->effective_price = (is_null($m->free_from) || $subtotal < (float)$m->free_from)
+                ? (float)$m->price
+                : 0.0;
+            return $m;
         });
 
-        // 4) (optionnel) vider le panier
-        if (Auth::check()) {
-            // ex: $cart->items()->delete(); ou status -> 'checked_out'
-        } else {
-            // session()->forget('cart'); // si tu utilises la session pour invités
+        // Adresse effective
+        $address = $order->shippingAddress
+            ? [
+                'full_name'      => $order->shippingAddress->full_name,
+                'address_line_1' => $order->shippingAddress->address_line_1,
+                'address_line_2' => $order->shippingAddress->address_line_2,
+                'postal_code'    => $order->shippingAddress->postal_code,
+                'city_id'        => $order->shippingAddress->city_id,
+                'city_name'      => $order->shippingAddress->city?->name,
+                'phone_number'   => $order->shippingAddress->phone_number,
+              ]
+            : $prefill;
+
+        return Inertia::render('Checkout/Address', [
+            'order' => [
+                'id'                 => $order->id,
+                'uuid'               => $order->uuid,
+                'customer_email'     => $order->customer_email,
+                'shipping_method_id' => $order->shipping_method_id,
+                'shipping_total'     => $order->shipping_total, // cts
+                'currency'           => $order->currency ?? 'EUR',
+            ],
+            'address'   => $address,
+            'items'     => $order->orderProducts->map(fn($op) => [
+                'id'   => $op->id,
+                'name' => $op->product?->name ?? 'Produit supprimé',
+                'qty'  => (int)$op->quantity,
+                'unit' => (float)$op->price,
+                'line' => (float)$op->price * (int)$op->quantity,
+                'image'=> $op->product?->image,
+            ]),
+            'subtotal'  => $subtotal,     // euros pour l’UI
+            'methods'   => $methods,      // euros pour l’UI
+            'guest'     => auth()->guest(),
+        ]);
+    }
+
+    public function update(Request $request, Order $order)
+    {
+        abort_if(in_array($order->payment_status, ['processing','paid','failed','refunded'], true), 403);
+
+        $rules = [
+            'shipping_method_id' => ['required','exists:shipping_methods,id'],
+            'full_name'          => ['required','string','max:255'],
+            'address_line_1'     => ['required','string','max:255'],
+            'address_line_2'     => ['nullable','string','max:255'],
+            'postal_code'        => ['required','string','max:20'],
+            'city_name'          => ['required','string','max:190'],
+            'phone_number'       => ['required','string','max:30'],
+        ];
+        if (!Auth::check()) $rules['customer_email'] = ['required','email','max:255'];
+
+        $data = $request->validate($rules);
+
+        if (!Auth::check()) $order->customer_email = $data['customer_email'];
+
+        // Ville par nom uniquement
+        $city = City::firstOrCreate(['name' => $data['city_name']]);
+
+        // Adresse
+        $addr = $order->shippingAddress ?? new ShippingAddress(['order_id' => $order->id]);
+        $addr->fill([
+            'full_name'      => $data['full_name'],
+            'address_line_1' => $data['address_line_1'],
+            'address_line_2' => $data['address_line_2'] ?? null,
+            'postal_code'    => $data['postal_code'],
+            'city_id'        => $city->id,
+            'phone_number'   => $data['phone_number'],
+        ])->save();
+
+        // Sous-total (euros) pour calcul free_from
+        $order->load('orderProducts');
+        $subtotal = $order->orderProducts->reduce(
+            fn($sum, $op) => $sum + ((float)$op->price * (int)$op->quantity),
+            0.0
+        );
+
+        // Méthode + règle free_from (euros) → snapshot brouillon
+        $method = ShippingMethod::findOrFail($data['shipping_method_id']);
+        $shippingEuro = (float)$method->price;
+        if ($method->free_from !== null && $subtotal >= (float)$method->free_from) {
+            $shippingEuro = 0.0;
         }
 
-        // 5) Redirection vers l’adresse/livraison
-        return redirect()->route('checkout.address.edit', $order);
+        // ⚠️ CONSERVER LES UNITÉS DU MODÈLE: shipping_total est en CENTIMES
+        $order->shipping_method_id = $method->id;
+        $order->shipping_total     = (int) round($shippingEuro * 100); // cts (draft)
+        $order->save();
+
+        $request->session()->put('current_order_uuid', $order->uuid);
+
+        return back()->with('success', 'Adresse et livraison enregistrées.');
+    }
+
+    public function finalizeAddressAndShipping(Request $request, Order $order)
+    {
+        abort_if(in_array($order->payment_status, ['processing','paid','failed','refunded'], true), 403);
+
+        $rules = [
+            'shipping_method_id' => ['required','exists:shipping_methods,id'],
+            'full_name'          => ['required','string','max:255'],
+            'address_line_1'     => ['required','string','max:255'],
+            'address_line_2'     => ['nullable','string','max:255'],
+            'postal_code'        => ['required','string','max:20'],
+            'city_name'          => ['required','string','max:190'],
+            'phone_number'       => ['required','string','max:30'],
+        ];
+        if (!Auth::check()) $rules['customer_email'] = ['required','email','max:255'];
+
+        $data = $request->validate($rules);
+
+        if (!Auth::check()) $order->customer_email = $data['customer_email'];
+
+        $city = City::firstOrCreate(['name' => $data['city_name']]);
+
+        $addr = $order->shippingAddress ?? new ShippingAddress(['order_id' => $order->id]);
+        $addr->fill([
+            'full_name'      => $data['full_name'],
+            'address_line_1' => $data['address_line_1'],
+            'address_line_2' => $data['address_line_2'] ?? null,
+            'postal_code'    => $data['postal_code'],
+            'city_id'        => $city->id,
+            'phone_number'   => $data['phone_number'],
+        ])->save();
+
+        // Sous-total en CENTIMES
+        $order->load('orderProducts');
+        $itemsSubtotalCents = $order->orderProducts->reduce(function ($sum, $op) {
+            $unitCents = (int) round(((float)$op->price) * 100);
+            return $sum + ($unitCents * (int) $op->quantity);
+        }, 0);
+
+        // Shipping (euros → cts) avec free_from
+        $method = ShippingMethod::findOrFail($data['shipping_method_id']);
+        $shippingEuro = (float) $method->price;
+        if ($method->free_from !== null && ($itemsSubtotalCents / 100) >= (float) $method->free_from) {
+            $shippingEuro = 0.0;
+        }
+        $shippingCents = (int) round($shippingEuro * 100);
+
+        // Total figé (cts)
+        $grandTotalCents = $itemsSubtotalCents + $shippingCents;
+
+        $order->shipping_method_id = $method->id;
+        $order->shipping_total     = $shippingCents;     // cts
+        $order->total_price        = $grandTotalCents;   // cts (figé)
+        $order->currency           = $order->currency ?: 'EUR';
+        $order->payment_method     = 'stripe';
+        $order->save();
+
+        $request->session()->put('current_order_uuid', $order->uuid);
+
+        return redirect()
+            ->route('checkout.payment.show', $order)
+            ->with('success', 'Adresse finalisée. Montants figés. Procédez au paiement.');
     }
 }
-
