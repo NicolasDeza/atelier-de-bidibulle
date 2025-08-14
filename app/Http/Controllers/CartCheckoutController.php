@@ -28,8 +28,9 @@ class CartCheckoutController extends Controller
 
             $items = $cart->cartItems->map(function ($ci) {
                 return (object)[
-                    'product'  => $ci->product,
-                    'quantity' => (int) $ci->quantity,
+                    'product'       => $ci->product,
+                    'quantity'      => (int) $ci->quantity,
+                    'customization' => $ci->customization, // 🔥 REMETTRE LA PERSONNALISATION
                 ];
             });
         } else {
@@ -42,10 +43,15 @@ class CartCheckoutController extends Controller
                     $a = (array) $value;
                     $pid = $a['product_id'] ?? $a['id'] ?? $a['productId'] ?? null;
                     $qty = $a['quantity'] ?? $a['qty'] ?? 1;
-                    return $pid ? [[ 'product_id' => (int) $pid, 'quantity' => (int) $qty ]] : [];
+                    $customization = $a['customization'] ?? null; // 🔥 REMETTRE LA PERSONNALISATION
+                    return $pid ? [[
+                        'product_id' => (int) $pid,
+                        'quantity' => (int) $qty,
+                        'customization' => $customization
+                    ]] : [];
                 }
                 if (!is_numeric($key)) {
-                    return [[ 'product_id' => (int) $key, 'quantity' => (int) $value ]];
+                    return [[ 'product_id' => (int) $key, 'quantity' => (int) $value, 'customization' => null ]];
                 }
                 return [];
             })->filter(fn($it) => $it['product_id'] > 0 && $it['quantity'] > 0)
@@ -57,8 +63,9 @@ class CartCheckoutController extends Controller
 
             $items = $normalized->map(function ($it) {
                 return (object)[
-                    'product'  => Product::find($it['product_id']),
-                    'quantity' => (int) $it['quantity'],
+                    'product'       => Product::find($it['product_id']),
+                    'quantity'      => (int) $it['quantity'],
+                    'customization' => $it['customization'], // 🔥 REMETTRE LA PERSONNALISATION
                 ];
             });
         }
@@ -92,10 +99,11 @@ class CartCheckoutController extends Controller
 
             foreach ($items as $item) {
                 OrderProduct::create([
-                    'order_id'   => $order->id,
-                    'product_id' => $item->product->id,
-                    'quantity'   => (int) $item->quantity,
-                    'price'      => $item->product->price, // snapshot unitaire en € (float/decimal)
+                    'order_id'      => $order->id,
+                    'product_id'    => $item->product->id,
+                    'quantity'      => (int) $item->quantity,
+                    'price'         => $item->product->price,
+                    'customization' => $item->customization, // 🔥 REMETTRE LA PERSONNALISATION
                 ]);
             }
 

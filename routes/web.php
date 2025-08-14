@@ -54,14 +54,13 @@ Route::post('/cart/checkout', [CartCheckoutController::class, 'createOrderFromCa
 Route::get('/checkout/payment/{order}', [CheckoutPaymentController::class, 'startAndRedirect'])
     ->name('checkout.payment.show');
 
-// 3) Variante “start” (peut servir si on change le flux)
+// 3) Variante "start" (peut servir si on change le flux)
 Route::get('/checkout/payment/start/{order}', [CheckoutPaymentController::class, 'startAndRedirect'])
     ->name('checkout.payment.start');
 
-// 4) Retour après succès ou annulation
+// 4) Retour après succès ou annulation - CORRIGÉ
 Route::get('/checkout/return/{order}', [CheckoutPaymentController::class, 'return'])
     ->name('checkout.payment.return');
-
 
 
     //! ROUTE AVIS
@@ -74,27 +73,32 @@ Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('
 Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
 Route::get('/categorie/{category}', [CategoryController::class, 'show'])->name('categories.show');
 
-
-
-Route::middleware([
-    'auth:sanctum',
-    config('jetstream.auth_session'),
-    'verified',
-])->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
-});
 Route::get('/categorie/{category}', [CategoryController::class, 'show'])->name('categories.show');
 
 
-
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
     Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
+        // ✅ Voir les commandes sur le dashboard
+        $orders = \App\Models\Order::with(['orderProducts.product'])
+            ->latest()
+            ->take(10)
+            ->get();
+            
+        return Inertia::render('Dashboard', [
+            'orders' => $orders->map(fn($order) => [
+                'id' => $order->id,
+                'uuid' => $order->uuid,
+                'payment_status' => $order->payment_status,
+                'total_price' => (float) $order->total_price,
+                'paid_at' => $order->paid_at?->format('d/m/Y H:i'),
+                'items_count' => $order->orderProducts->count(),
+            ])
+        ]);
     })->name('dashboard');
 });
+
+
