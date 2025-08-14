@@ -13,6 +13,7 @@ use App\Http\Controllers\CheckoutAddressController;
 use App\Http\Controllers\CheckoutPaymentController;
 use App\Http\Controllers\CartCheckoutController;
 use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\Admin\ProductController as AdminProductController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
@@ -87,7 +88,7 @@ Route::middleware([
             ->latest()
             ->take(10)
             ->get();
-            
+
         return Inertia::render('Dashboard', [
             'orders' => $orders->map(fn($order) => [
                 'id' => $order->id,
@@ -99,6 +100,20 @@ Route::middleware([
             ])
         ]);
     })->name('dashboard');
+});
+
+// Routes ADMIN CRUD
+Route::middleware(['auth','verified'])->prefix('admin')->name('admin.')->group(function () {
+    Route::middleware('is_admin')->group(function () {
+        Route::get('/products', [AdminProductController::class, 'index'])->name('products.index');
+        Route::get('/products/create', [AdminProductController::class, 'create'])->name('products.create');
+        Route::post('/products', [AdminProductController::class, 'store'])->name('products.store');
+
+
+        Route::get('/products/{product:id}/edit', [AdminProductController::class, 'edit'])->name('products.edit');
+        Route::put('/products/{product:id}', [AdminProductController::class, 'update'])->name('products.update');
+        Route::delete('/products/{product:id}', [AdminProductController::class, 'destroy'])->name('products.destroy');
+    });
 });
 
 
