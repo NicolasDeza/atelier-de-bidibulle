@@ -2,6 +2,7 @@
 import { Link, usePage, router } from "@inertiajs/vue3";
 import { ref, watch } from "vue";
 import AppLayout from "@/Layouts/AppLayout.vue";
+import Pagination from "@/Components/Pagination.vue";
 import { Dialog, DialogPanel, TransitionRoot } from "@headlessui/vue";
 import {
     PencilSquareIcon,
@@ -260,22 +261,9 @@ watch([search, category_id], () => {
                         </table>
                     </div>
 
-                    <!-- Pagination -->
-                    <div class="flex flex-wrap gap-2 border-t p-4">
-                        <Link
-                            v-for="(l, i) in products.links"
-                            :key="`${i}-${l.label}`"
-                            :href="l.url || '#'"
-                            v-html="l.label"
-                            :class="[
-                                'rounded border px-3 py-1 text-sm',
-                                l.active
-                                    ? 'bg-black text-white'
-                                    : !l.url
-                                    ? 'pointer-events-none opacity-50'
-                                    : 'bg-white',
-                            ]"
-                        />
+                    <!-- Pagination avec composant -->
+                    <div class="border-t p-4">
+                        <Pagination :links="products.links" />
                     </div>
                 </div>
             </div>
