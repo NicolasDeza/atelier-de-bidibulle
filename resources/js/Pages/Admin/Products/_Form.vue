@@ -25,10 +25,25 @@ const form = useForm({
     discount_type: props.product?.discount_type ?? null, // 'fixed' | 'percent' | null
     discount_value: props.product?.discount_value ?? null,
     stock: props.product?.stock ?? 0,
-    image: props.product?.image ?? "",
-    image_large: props.product?.image_large ?? "",
+    image: null, // 🔥 CHANGÉ : fichier au lieu de string
     category_id: props.product?.category_id ?? null,
 });
+
+// 🔥 NOUVEAU : Gestion upload image
+const imagePreview = ref(props.product?.image_url ?? null);
+
+const handleImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        form.image = file;
+        // Preview locale
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.value = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+};
 
 // --- Catégorie (Listbox)
 const selectedCategory = ref(
@@ -79,13 +94,6 @@ watch(
 // --- Helpers
 const canEditDiscountValue = computed(
     () => selectedDiscount.value?.value !== null
-);
-const imagePreview = computed(() =>
-    form.image
-        ? `/images/produits/${form.image}`
-        : props.product?.image
-        ? `/images/produits/${props.product.image}`
-        : null
 );
 
 // --- submit
@@ -325,44 +333,29 @@ function submit() {
                 </p>
             </div>
 
-            <!-- Image (nom de fichier) -->
+            <!-- Image (upload fichier) -->
             <div class="sm:col-span-1">
-                <label class="mb-1 block text-sm font-medium"
-                    >Image (nom de fichier)</label
-                >
+                <label class="mb-1 block text-sm font-medium">
+                    Image produit
+                </label>
                 <input
-                    v-model="form.image"
-                    class="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="ex: TFE-exemple-3.jpg"
+                    type="file"
+                    accept="image/*"
+                    @change="handleImageUpload"
+                    class="w-full rounded-lg border px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-indigo-50 file:px-3 file:py-1 file:text-indigo-600 hover:file:bg-indigo-100"
                 />
                 <p v-if="form.errors.image" class="mt-1 text-xs text-red-600">
                     {{ form.errors.image }}
                 </p>
+
+                <!-- Preview -->
                 <div v-if="imagePreview" class="mt-2">
                     <img
                         :src="imagePreview"
-                        alt=""
+                        alt="Preview"
                         class="h-24 w-24 rounded object-cover ring-1 ring-gray-200"
                     />
                 </div>
-            </div>
-
-            <!-- Image large (optionnel) -->
-            <div class="sm:col-span-1">
-                <label class="mb-1 block text-sm font-medium"
-                    >Image large (nom de fichier)</label
-                >
-                <input
-                    v-model="form.image_large"
-                    class="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="ex: TFE-exemple-3-xl.jpg"
-                />
-                <p
-                    v-if="form.errors.image_large"
-                    class="mt-1 text-xs text-red-600"
-                >
-                    {{ form.errors.image_large }}
-                </p>
             </div>
 
             <!-- Description (col-span) -->

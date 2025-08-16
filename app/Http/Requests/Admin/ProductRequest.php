@@ -32,7 +32,6 @@ class ProductRequest extends FormRequest
             'discount_value' => 'nullable|numeric|min:0',
             'stock' => 'required|integer|min:0',
             'image' => 'nullable|string|max:255',
-            'image_large' => 'nullable|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
         ];
     }

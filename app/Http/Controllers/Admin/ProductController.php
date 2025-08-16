@@ -39,7 +39,20 @@ class ProductController extends Controller
 
     public function store(ProductRequest $request)
     {
-        Product::create($request->validated());
+        $validated = $request->validate([
+            // ...existing validation...
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        // 🔥 Upload de l'image
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('images/produits'), $filename);
+            $validated['image'] = $filename;
+        }
+
+        Product::create($validated);
         return redirect()->route('admin.products.index')->with('success', 'Produit créé.');
     }
 
