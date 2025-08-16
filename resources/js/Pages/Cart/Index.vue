@@ -1,7 +1,8 @@
 <script setup>
 import { Link, router } from "@inertiajs/vue3";
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import PublicLayout from "@/Layouts/PublicLayout.vue";
+import Modal from "@/Components/Modal.vue";
 
 const props = defineProps({
     cartItems: { type: Array, default: () => [] },
@@ -27,6 +28,11 @@ const hasStockIssue = computed(() =>
         (i) => !i.is_available || i.stock === 0 || i.quantity > i.stock
     )
 );
+
+// États pour les modals
+const showRemoveModal = ref(false);
+const showClearModal = ref(false);
+const itemToRemove = ref(null);
 
 // Mise à jour de la quantité (client-side guard + requête)
 const updateQuantity = (item, newQuantity) => {
@@ -54,23 +60,36 @@ const updateQuantity = (item, newQuantity) => {
 };
 
 // Supprimer un produit
-const removeItem = (item) => {
-    if (!confirm("Voulez-vous retirer ce produit du panier ?")) return;
+const askRemoveItem = (item) => {
+    itemToRemove.value = item;
+    showRemoveModal.value = true;
+};
+
+const confirmRemoveItem = () => {
+    if (!itemToRemove.value) return;
 
     if (props.isAuthenticated) {
-        router.delete(route("cart.remove", item.id), { preserveScroll: true });
+        router.delete(route("cart.remove", itemToRemove.value.id), {
+            preserveScroll: true,
+        });
     } else {
-        router.delete(route("cart.session.remove", item.key), {
+        router.delete(route("cart.session.remove", itemToRemove.value.key), {
             preserveScroll: true,
         });
     }
+
+    showRemoveModal.value = false;
+    itemToRemove.value = null;
 };
 
 // Vider le panier
-const clearCart = () => {
-    if (!confirm("Voulez-vous vider le panier ?")) return;
+const askClearCart = () => {
+    showClearModal.value = true;
+};
 
+const confirmClearCart = () => {
     router.delete(route("cart.clear"), { preserveScroll: true });
+    showClearModal.value = false;
 };
 </script>
 
@@ -176,7 +195,7 @@ const clearCart = () => {
                                 </div>
 
                                 <button
-                                    @click="removeItem(item)"
+                                    @click="askRemoveItem(item)"
                                     class="text-red-600 hover:text-red-800 p-2 rounded hover:bg-red-50 transition-colors"
                                     title="Supprimer du panier"
                                     aria-label="Supprimer du panier"
@@ -255,7 +274,7 @@ const clearCart = () => {
                     </p>
 
                     <button
-                        @click="clearCart"
+                        @click="askClearCart"
                         class="w-full border border-gray-300 py-2 rounded hover:bg-gray-100 text-sm"
                         aria-label="Vider complètement le panier"
                     >
@@ -264,5 +283,53 @@ const clearCart = () => {
                 </div>
             </div>
         </div>
+
+        <!-- Modal suppression item -->
+        <Modal :show="showRemoveModal" @close="showRemoveModal = false">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold mb-4">Supprimer du panier</h3>
+                <p class="text-gray-600 mb-6">
+                    Voulez-vous retirer {{ itemToRemove?.name }} du panier ?
+                </p>
+                <div class="flex justify-end gap-3">
+                    <button
+                        @click="showRemoveModal = false"
+                        class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        @click="confirmRemoveItem"
+                        class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                    >
+                        Supprimer
+                    </button>
+                </div>
+            </div>
+        </Modal>
+
+        <!-- Modal vider panier -->
+        <Modal :show="showClearModal" @close="showClearModal = false">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold mb-4">Vider le panier</h3>
+                <p class="text-gray-600 mb-6">
+                    Voulez-vous vider complètement le panier ?
+                </p>
+                <div class="flex justify-end gap-3">
+                    <button
+                        @click="showClearModal = false"
+                        class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        @click="confirmClearCart"
+                        class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                    >
+                        Vider le panier
+                    </button>
+                </div>
+            </div>
+        </Modal>
     </PublicLayout>
 </template>

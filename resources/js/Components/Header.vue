@@ -68,7 +68,7 @@ const logout = () => {
                 <!-- Icône user -->
                 <Link
                     v-if="page.props.auth.user"
-                    href="/dashboard"
+                    :href="route('profile.show')"
                     class="hidden md:inline text-black hover:text-gray-600 transition"
                 >
                     <i class="fa-solid fa-user text-lg"></i>

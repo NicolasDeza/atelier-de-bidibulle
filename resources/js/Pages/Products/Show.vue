@@ -3,6 +3,7 @@ import { Link, router, usePage } from "@inertiajs/vue3";
 import { ref, computed } from "vue";
 import PublicLayout from "@/Layouts/PublicLayout.vue";
 import SimilarProducts from "@/Components/SimilarProducts.vue";
+import Modal from "@/Components/Modal.vue";
 
 const page = usePage();
 const props = defineProps({
@@ -41,7 +42,6 @@ const showLessReviews = () => {
 
 const submitReview = () => {
     if (!newReview.value || !newRating.value) {
-        alert("Veuillez écrire un avis et donner une note.");
         return;
     }
 
@@ -55,23 +55,33 @@ const submitReview = () => {
         {
             preserveScroll: true,
             onSuccess: () => {
-                alert("Merci pour votre avis !");
                 newReview.value = "";
                 newRating.value = "";
                 showReviewForm.value = false;
             },
-            onError: () => {
-                alert("Erreur lors de l'envoi de l'avis.");
-            },
+            onError: () => {},
         }
     );
 };
-const deleteReview = (id) => {
-    if (!confirm("Voulez-vous vraiment supprimer cet avis ?")) return;
 
-    router.delete(route("reviews.destroy", id), {
+// États pour le modal de suppression d'avis
+const showDeleteModal = ref(false);
+const reviewToDelete = ref(null);
+
+const askDeleteReview = (review) => {
+    reviewToDelete.value = review;
+    showDeleteModal.value = true;
+};
+
+const confirmDeleteReview = () => {
+    if (!reviewToDelete.value) return;
+
+    router.delete(route("reviews.destroy", reviewToDelete.value.id), {
         preserveScroll: true,
-        onSuccess: () => alert("Avis supprimé avec succès"),
+        onFinish: () => {
+            showDeleteModal.value = false;
+            reviewToDelete.value = null;
+        },
     });
 };
 
@@ -120,11 +130,9 @@ const addToCart = () => {
             preserveScroll: true,
             onSuccess: () => {
                 customization.value = "";
-                alert("Produit ajouté au panier !");
             },
             onError: (errors) => {
                 console.error("Erreur ajout panier:", errors);
-                alert("Impossible d'ajouter au panier");
             },
         }
     );
@@ -150,7 +158,6 @@ const toggleFavorite = () => {
             },
             onError: (errors) => {
                 console.error("Erreur favoris:", errors);
-                alert("Une erreur est survenue");
             },
         }
     );
@@ -361,7 +368,7 @@ const toggleFavorite = () => {
 
                         <button
                             v-if="page.props.auth?.user?.id === review.user.id"
-                            @click="deleteReview(review.id)"
+                            @click="askDeleteReview(review)"
                             class="text-red-600 hover:text-red-800 p-2 rounded hover:bg-red-50 transition-colors"
                             title="Supprimer cet avis"
                             aria-label="Supprimer cet avis"
@@ -488,5 +495,29 @@ const toggleFavorite = () => {
         <section class="mt-20 mb-20 max-w-[1440px] mx-auto px-4 md:px-8">
             <SimilarProducts :products="props.similarProducts" />
         </section>
+
+        <!-- Modal suppression avis -->
+        <Modal :show="showDeleteModal" @close="showDeleteModal = false">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold mb-4">Supprimer l'avis</h3>
+                <p class="text-gray-600 mb-6">
+                    Voulez-vous vraiment supprimer cet avis ?
+                </p>
+                <div class="flex justify-end gap-3">
+                    <button
+                        @click="showDeleteModal = false"
+                        class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        @click="confirmDeleteReview"
+                        class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                    >
+                        Supprimer
+                    </button>
+                </div>
+            </div>
+        </Modal>
     </PublicLayout>
 </template>
