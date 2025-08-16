@@ -117,7 +117,11 @@ class ProductRequest extends FormRequest
         // Upload image si fournie
         if ($this->hasFile('image')) {
             $file = $this->file('image');
-            $filename = time() . '_' . $file->getClientOriginalName();
+
+            // 🔥 SÉCURITÉ : Générer un nom sûr au lieu d'utiliser le nom original
+            $extension = $file->getClientOriginalExtension();
+            $filename = time() . '_' . uniqid() . '.' . $extension;
+
             $file->move(public_path('images/produits'), $filename);
             $validated['image'] = $filename;
         } else {
@@ -130,4 +134,3 @@ class ProductRequest extends FormRequest
         return $validated;
     }
 }
-
