@@ -4,63 +4,86 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Category;
-use App\Models\Review;
-use App\Models\Wishlist;
-use App\Models\Order;
-use App\Models\OrderProduct;
-use App\Models\User;
 
 class Product extends Model
 {
-    /** @use HasFactory<\Database\Factories\ProductFactory> */
     use HasFactory;
 
-    public function getRouteKeyName(): string
-{
-    return 'slug';
-}
+    /**
+     * Attributs assignables en masse.
+     */
+    protected $fillable = [
+        'name',
+        'slug',
+        'description',
+        'price',
+        'old_price',
+        'stock',
+        'image',
+        'category_id',
+        'discount_type',   // 'fixed' | 'percent' | null (si tu l'utilises)
+        'discount_value',  // numeric | null
+    ];
 
-  public function category()
+    /**
+     * Casts (ajuste selon ton schéma).
+     */
+    protected $casts = [
+        'price'          => 'decimal:2',
+        'old_price'      => 'decimal:2',
+        'stock'          => 'integer',
+        'discount_value' => 'decimal:2',
+    ];
+
+    /**
+     * Ajouter automatiquement l'URL d'image aux réponses JSON/Inertia.
+     */
+    protected $appends = ['image_url'];
+
+    /**
+     * Relations
+     */
+    public function category()
     {
         return $this->belongsTo(Category::class);
     }
 
     public function reviews()
     {
-        return $this->hasMany(Review::class);
+        return $this->hasMany(Review::class)->latest();
     }
 
-    public function wishlists()
-    {
-        return $this->hasMany(Wishlist::class);
-    }
+    // Si tu as une relation "favorites" utilisateur <-> produits
+    // public function favoritedBy()
+    // {
+    //     return $this->belongsToMany(User::class, 'favorites', 'product_id', 'user_id')
+    //                 ->withTimestamps();
+    // }
 
-    public function favoritedBy()
-{
-    return $this->belongsToMany(User::class, 'wishlists');
-}
-
-    public function orders()
-    {
-        return $this->belongsToMany(Order::class)->using(OrderProduct::class);
-    }
-
+    /**
+     * Accessor : URL complète vers l'image du produit.
+     * On pointe vers public/images/produits (retour "comme avant").
+     * Met un fallback si aucune image n'est définie.
+     */
     public function getImageUrlAttribute(): string
     {
-        return asset('images/produits/' . $this->image);
-   }
-protected $appends = ['image_url'];
+        if (!empty($this->image)) {
+            $path = public_path('images/produits/'.$this->image);
+            if (is_file($path)) {
+                return asset('images/produits/'.$this->image);
+            }
+        }
 
-protected $fillable = [
-    'name',
-    'slug',
-    'description',
-    'price',
-    'discount_type',
-    'discount_value',
-    'stock',
-    'image',
-    'category_id',
-];
+        // Fallback (mets ton image par défaut si besoin)
+        return asset('images/default.jpg');
+    }
+
+    /**
+     * Optionnel : utiliser le slug dans les routes publiques
+     * (ex: /products/{product:slug})
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
 }

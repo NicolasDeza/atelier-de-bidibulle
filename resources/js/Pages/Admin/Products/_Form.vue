@@ -65,6 +65,28 @@ watch(
 const handleImageUpload = (event) => {
     const file = event.target.files?.[0];
     if (file) {
+        // 🔥 SÉCURITÉ : Validation côté client
+        const allowedTypes = [
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+        ];
+        if (!allowedTypes.includes(file.type)) {
+            form.setError(
+                "image",
+                "Type de fichier non autorisé. Utilisez JPG, PNG, GIF ou WEBP."
+            );
+            return;
+        }
+
+        if (file.size > 2 * 1024 * 1024) {
+            // 2MB
+            form.setError("image", "Le fichier ne doit pas dépasser 2 Mo.");
+            return;
+        }
+
+        form.clearErrors("image");
         form.image = file;
         const reader = new FileReader();
         reader.onload = (e) => (imagePreview.value = e.target?.result);
@@ -286,6 +308,8 @@ function submit() {
                                 >
                                     Parcourir…
                                 </label>
+
+                                <!-- Nom du fichier / état -->
                                 <span
                                     class="text-sm text-slate-600 truncate max-w-[240px]"
                                 >
@@ -294,13 +318,25 @@ function submit() {
                                             ? form.image.name
                                             : imagePreview
                                             ? "Image sélectionnée"
+                                            : !isCreate && product?.image
+                                            ? "Image actuelle"
                                             : "Aucun fichier sélectionné"
                                     }}
                                 </span>
+
+                                <!-- Preview locale si un nouveau fichier a été choisi -->
                                 <img
                                     v-if="imagePreview"
                                     :src="imagePreview"
                                     alt="Preview"
+                                    class="h-10 w-10 object-cover rounded border"
+                                />
+
+                                <!-- Preview de l'image existante (édition, aucun nouveau fichier) -->
+                                <img
+                                    v-else-if="!isCreate && product?.image"
+                                    :src="product.image_url"
+                                    alt="Image actuelle"
                                     class="h-10 w-10 object-cover rounded border"
                                 />
                             </div>

@@ -14,24 +14,26 @@ class ProductController extends Controller
      * Display a listing of the resource.
      */
     public function index()
-    {
-        $filters = request()->only(['search', 'category_id']);
+{
+    $filters = request()->only(['search', 'category_id']);
 
-        $products = \App\Models\Product::with('category')
-            ->when($filters['search'] ?? null, fn ($q, $s) =>
-                $q->where(fn ($qq) => $qq->where('name', 'like', "%$s%")->orWhere('slug', 'like', "%$s%"))
-            )
-            ->when($filters['category_id'] ?? null, fn ($q, $cid) => $q->where('category_id', $cid))
-            ->latest()
-            ->paginate(12)
-            ->withQueryString();
+    $products = \App\Models\Product::with('category')
+        ->when($filters['search'] ?? null, fn ($q, $s) =>
+            $q->where(fn ($qq) => $qq->where('name', 'like', "%$s%")
+                                     ->orWhere('slug', 'like', "%$s%"))
+        )
+        ->when($filters['category_id'] ?? null, fn ($q, $cid) => $q->where('category_id', $cid))
+        ->latest()
+        ->paginate(12)
+        ->through(fn ($p) => tap($p)->append('image_url'))   // ← important
+        ->withQueryString();
 
-        return \Inertia\Inertia::render('Admin/Products/Index', [
-            'products' => $products,
-            'categories' => \App\Models\Category::orderBy('name')->get(['id', 'name']),
-            'filters' => $filters,
-        ]);
-    }
+    return \Inertia\Inertia::render('Admin/Products/Index', [
+        'products'   => $products,
+        'categories' => \App\Models\Category::orderBy('name')->get(['id', 'name']),
+        'filters'    => $filters,
+    ]);
+}
 
     /**
      * Show the form for creating a new resource.

@@ -134,9 +134,117 @@ watch([search, category_id], () => {
                     </div>
                 </div>
 
-                <!-- Tableau -->
+                <!-- Tableau responsive -->
                 <div class="overflow-hidden rounded-lg bg-white shadow">
-                    <div class="overflow-x-auto">
+                    <!-- Version mobile (cartes) -->
+                    <div class="sm:hidden">
+                        <div
+                            v-for="p in products.data"
+                            :key="p.id"
+                            class="border-b border-gray-200 p-4"
+                        >
+                            <div class="flex items-start space-x-3">
+                                <!-- Image -->
+                                <img
+                                    v-if="p.image_url"
+                                    :src="p.image_url"
+                                    class="h-16 w-16 rounded object-cover ring-1 ring-gray-200 flex-shrink-0"
+                                    alt="Image produit"
+                                />
+                                <div
+                                    v-else
+                                    class="h-16 w-16 rounded bg-gray-100 flex items-center justify-center text-gray-400 text-xs flex-shrink-0"
+                                >
+                                    —
+                                </div>
+
+                                <!-- Contenu -->
+                                <div class="flex-1 min-w-0">
+                                    <div
+                                        class="flex items-start justify-between"
+                                    >
+                                        <div class="flex-1">
+                                            <h3
+                                                class="font-medium text-gray-900 truncate"
+                                            >
+                                                {{ p.name }}
+                                            </h3>
+                                            <p
+                                                class="text-sm text-gray-500 truncate"
+                                            >
+                                                {{ p.slug }}
+                                            </p>
+                                            <p
+                                                class="text-sm font-medium text-gray-900 mt-1"
+                                            >
+                                                {{
+                                                    Number(p.price).toFixed(2)
+                                                }}€
+                                            </p>
+                                        </div>
+
+                                        <!-- Actions mobile -->
+                                        <div
+                                            class="flex items-center space-x-2 ml-2"
+                                        >
+                                            <Link
+                                                :href="`/admin/products/${p.id}/edit`"
+                                                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                                                title="Modifier"
+                                            >
+                                                <PencilSquareIcon
+                                                    class="h-4 w-4"
+                                                />
+                                            </Link>
+                                            <button
+                                                @click="askDelete(p)"
+                                                class="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-600 hover:bg-red-50"
+                                                title="Supprimer"
+                                            >
+                                                <TrashIcon class="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Badges mobile -->
+                                    <div
+                                        class="flex items-center justify-between mt-2"
+                                    >
+                                        <span
+                                            :class="[
+                                                'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium',
+                                                p.stock > 0
+                                                    ? 'bg-green-100 text-green-700'
+                                                    : 'bg-red-100 text-red-700',
+                                            ]"
+                                        >
+                                            {{
+                                                p.stock > 0
+                                                    ? `Stock: ${p.stock}`
+                                                    : "Rupture"
+                                            }}
+                                        </span>
+                                        <span class="text-xs text-gray-500">
+                                            {{
+                                                p.category?.name ??
+                                                "Sans catégorie"
+                                            }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            v-if="products.data.length === 0"
+                            class="p-8 text-center text-gray-500"
+                        >
+                            Aucun produit.
+                        </div>
+                    </div>
+
+                    <!-- Version desktop (tableau) -->
+                    <div class="hidden sm:block overflow-x-auto">
                         <table class="min-w-full text-sm">
                             <thead class="bg-gray-50 text-left">
                                 <tr>
@@ -180,11 +288,17 @@ watch([search, category_id], () => {
                                 >
                                     <td class="px-4 py-3">
                                         <img
-                                            v-if="p.image"
-                                            :src="`/images/produits/${p.image}`"
+                                            v-if="p.image_url"
+                                            :src="p.image_url"
                                             class="h-12 w-12 rounded object-cover ring-1 ring-gray-200"
-                                            alt=""
+                                            alt="Image produit"
                                         />
+                                        <div
+                                            v-else
+                                            class="h-12 w-12 rounded bg-gray-100 flex items-center justify-center text-gray-400 text-xs"
+                                        >
+                                            —
+                                        </div>
                                     </td>
                                     <td class="px-4 py-3">
                                         <div class="font-medium text-gray-900">
@@ -261,7 +375,7 @@ watch([search, category_id], () => {
                         </table>
                     </div>
 
-                    <!-- Pagination avec composant -->
+                    <!-- Pagination -->
                     <div class="border-t p-4">
                         <Pagination :links="products.links" />
                     </div>

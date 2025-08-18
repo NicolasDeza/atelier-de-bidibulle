@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Storage;
 
 class ProductRequest extends FormRequest
 {
@@ -114,18 +115,41 @@ class ProductRequest extends FormRequest
     {
         $validated = parent::validated($key, $default);
 
-        // Upload image si fournie
         if ($this->hasFile('image')) {
             $file = $this->file('image');
 
-            // 🔥 SÉCURITÉ : Générer un nom sûr au lieu d'utiliser le nom original
-            $extension = $file->getClientOriginalExtension();
-            $filename = time() . '_' . uniqid() . '.' . $extension;
+            // 🔥 SÉCURITÉ : Vérification du contenu réel
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $file->path());
+            finfo_close($finfo);
 
-            $file->move(public_path('images/produits'), $filename);
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!in_array($mimeType, $allowedMimes)) {
+                throw new \Illuminate\Validation\ValidationException(
+                    validator([], []),
+                    ['image' => ['Le fichier n\'est pas une image valide.']]
+                );
+            }
+
+            // 🔥 RETOUR au système original : public/images/produits/
+            $extension = $file->getClientOriginalExtension();
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            if (!in_array(strtolower($extension), $allowedExtensions)) {
+                $extension = 'jpg';
+            }
+
+            $filename = uniqid() . '_' . time() . '.' . $extension;
+
+            // S'assurer que le dossier existe
+            $destinationPath = public_path('images/produits');
+            if (!is_dir($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+
+            $file->move($destinationPath, $filename);
             $validated['image'] = $filename;
         } else {
-            // En édition : ne pas toucher à l'image si rien de nouveau
+            // En édition : ne pas modifier l'image si aucune nouvelle
             if ($this->isMethod('put') || $this->isMethod('patch')) {
                 unset($validated['image']);
             }
