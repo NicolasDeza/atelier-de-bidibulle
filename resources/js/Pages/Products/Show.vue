@@ -344,152 +344,230 @@ const toggleFavorite = () => {
             </div>
         </section>
         <!-- Section avis produit -->
-        <section class="mt-16 max-w-[1440px] mx-auto px-4 md:px-8">
-            <h2 class="text-2xl font-bold mb-6 text-center">
-                Avis sur ce produit
-            </h2>
+        <section class="mt-16 py-16">
+            <div class="max-w-4xl mx-auto px-6">
+                <h2 class="text-2xl font-bold mb-8 text-center">
+                    Avis sur ce produit
+                </h2>
 
-            <!-- Liste des avis -->
-            <div v-if="props.product.reviews.length" class="space-y-6">
+                <!-- Résumé des notes -->
                 <div
-                    v-for="review in visibleReviews"
-                    :key="review.id"
-                    class="bg-white shadow-md rounded-lg p-4 border border-gray-100"
+                    v-if="props.product.reviews_count > 0"
+                    class="border border-gray-200 rounded-xl p-6 mb-8"
                 >
-                    <div class="flex justify-between items-center mb-2">
-                        <div class="flex items-center">
-                            <span class="text-yellow-400 text-lg mr-2">
-                                {{ getStars(review.rating) }}
-                            </span>
-                            <span class="text-sm font-medium text-gray-700">
-                                {{ review.user.name }}
-                            </span>
+                    <div class="flex items-center justify-center gap-6">
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-gray-900">
+                                {{ props.product.average_rating }}
+                            </div>
+                            <div class="text-yellow-400 text-xl mb-1">
+                                {{
+                                    getStars(
+                                        Math.round(props.product.average_rating)
+                                    )
+                                }}
+                            </div>
+                            <div class="text-sm text-gray-600">
+                                {{ props.product.reviews_count }} avis
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Liste des avis -->
+                <div v-if="props.product.reviews.length" class="space-y-6">
+                    <div
+                        v-for="review in visibleReviews"
+                        :key="review.id"
+                        class="border border-gray-200 rounded-xl p-6 hover:border-gray-300 transition-colors"
+                    >
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-10 h-10 bg-bidibordeaux rounded-full flex items-center justify-center text-white font-semibold"
+                                >
+                                    {{
+                                        review.user.name.charAt(0).toUpperCase()
+                                    }}
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">
+                                        {{ review.user.name }}
+                                    </div>
+                                    <div class="text-sm text-gray-500">
+                                        {{
+                                            new Intl.DateTimeFormat(
+                                                "fr-BE"
+                                            ).format(
+                                                new Date(review.created_at)
+                                            )
+                                        }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <span class="text-yellow-400">
+                                    {{ getStars(review.rating) }}
+                                </span>
+                                <button
+                                    v-if="
+                                        page.props.auth?.user?.id ===
+                                        review.user.id
+                                    "
+                                    @click="askDeleteReview(review)"
+                                    class="text-gray-400 hover:text-red-600 transition-colors p-1"
+                                    title="Supprimer cet avis"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke-width="1.5"
+                                        stroke="currentColor"
+                                        class="w-4 h-4"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+                                        />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <p class="text-gray-700 leading-relaxed">
+                            {{ review.comment }}
+                        </p>
+                    </div>
+
+                    <!-- Boutons Voir plus / Voir moins -->
+                    <div class="text-center pt-6">
+                        <button
+                            v-if="hasMoreReviews"
+                            @click="showMoreReviews"
+                            class="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition mr-3"
+                        >
+                            Voir plus d'avis
+                        </button>
+                        <button
+                            v-if="canShowLess"
+                            @click="showLessReviews"
+                            class="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                        >
+                            Voir moins
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Aucun avis -->
+                <div v-else class="text-center py-16">
+                    <div class="mb-6">
+                        <div
+                            class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"
+                        >
+                            <span class="text-gray-400 text-2xl">💭</span>
+                        </div>
+                        <h3 class="text-xl font-medium text-gray-900 mb-2">
+                            Aucun avis pour le moment
+                        </h3>
+                        <p class="text-gray-500">
+                            Soyez le premier à partager votre expérience avec ce
+                            produit
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Formulaire ajout d'avis -->
+                <div
+                    v-if="page.props.auth?.user"
+                    class="mt-12 pt-8 border-t border-gray-200"
+                >
+                    <button
+                        @click="showReviewForm = !showReviewForm"
+                        class="px-6 py-3 bg-bidibordeaux text-white rounded-lg hover:bg-rose-800 transition font-medium"
+                    >
+                        {{ showReviewForm ? "Annuler" : "Laisser un avis" }}
+                    </button>
+
+                    <div
+                        v-if="showReviewForm"
+                        class="border border-gray-200 rounded-xl p-6 mt-6"
+                    >
+                        <h3 class="text-lg font-semibold mb-6 text-gray-900">
+                            Votre avis
+                        </h3>
+
+                        <div class="mb-6">
+                            <label
+                                class="block text-sm font-medium text-gray-700 mb-2"
+                                >Note</label
+                            >
+                            <select
+                                v-model="newRating"
+                                class="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-bidibordeaux focus:border-bidibordeaux"
+                            >
+                                <option disabled value="">
+                                    Choisir une note
+                                </option>
+                                <option v-for="n in 5" :key="n" :value="n">
+                                    {{ n }} ★
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="mb-6">
+                            <label
+                                class="block text-sm font-medium text-gray-700 mb-2"
+                                >Commentaire</label
+                            >
+                            <textarea
+                                v-model="newReview"
+                                rows="4"
+                                placeholder="Partagez votre expérience avec ce produit..."
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-bidibordeaux focus:border-bidibordeaux"
+                            ></textarea>
                         </div>
 
                         <button
-                            v-if="page.props.auth?.user?.id === review.user.id"
-                            @click="askDeleteReview(review)"
-                            class="text-red-600 hover:text-red-800 p-2 rounded hover:bg-red-50 transition-colors"
-                            title="Supprimer cet avis"
-                            aria-label="Supprimer cet avis"
+                            @click="submitReview"
+                            class="bg-bidibordeaux hover:bg-rose-800 text-white font-medium px-6 py-3 rounded-lg transition"
                         >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-4 h-4"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-                                />
-                            </svg>
+                            Publier mon avis
                         </button>
                     </div>
-
-                    <span class="text-xs text-gray-400">
-                        {{
-                            new Intl.DateTimeFormat("fr-BE").format(
-                                new Date(review.created_at)
-                            )
-                        }}
-                    </span>
-
-                    <p class="text-gray-700 leading-relaxed mt-2">
-                        {{ review.comment }}
-                    </p>
                 </div>
 
-                <!-- Boutons Voir plus / Voir moins -->
-                <div class="text-center">
-                    <button
-                        v-if="hasMoreReviews"
-                        @click="showMoreReviews"
-                        class="mt-4 px-6 py-2 bg-bidibordeaux text-white rounded hover:bg-rose-800 transition"
-                    >
-                        Voir plus d'avis
-                    </button>
-                    <button
-                        v-if="canShowLess"
-                        @click="showLessReviews"
-                        class="mt-4 ml-2 px-6 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition"
-                    >
-                        Voir moins
-                    </button>
-                </div>
-            </div>
-
-            <!-- Aucun avis -->
-            <p v-else class="text-gray-500 text-center mb-6">
-                Aucun avis pour le moment.
-            </p>
-
-            <!-- Formulaire ajout d'avis -->
-            <div v-if="page.props.auth?.user" class="mt-10">
-                <button
-                    @click="showReviewForm = !showReviewForm"
-                    class="mb-4 px-4 py-2 bg-bidibordeaux text-white rounded hover:bg-rose-800 transition"
-                    :aria-label="
-                        showReviewForm
-                            ? 'Annuler le formulaire d’avis'
-                            : 'Ouvrir le formulaire pour laisser un avis'
-                    "
-                >
-                    {{ showReviewForm ? "Annuler" : "Laisser un avis" }}
-                </button>
-
-                <div
-                    v-if="showReviewForm"
-                    class="bg-gray-50 p-5 rounded-lg shadow-inner border"
-                >
-                    <h3 class="text-lg font-semibold mb-3">Laissez un avis</h3>
-
-                    <textarea
-                        v-model="newReview"
-                        rows="3"
-                        placeholder="Votre avis..."
-                        class="w-full border border-gray-300 rounded px-3 py-2 mb-3 focus:ring focus:ring-bidibordeaux focus:border-bidibordeaux"
-                    ></textarea>
-
-                    <select
-                        v-model="newRating"
-                        class="border border-gray-300 rounded px-2 py-2 mb-3 w-full focus:ring focus:ring-bidibordeaux"
-                    >
-                        <option disabled value="">Sélectionnez une note</option>
-                        <option v-for="n in 5" :key="n" :value="n">
-                            {{ n }} ★
-                        </option>
-                    </select>
-
-                    <button
-                        @click="submitReview"
-                        class="bg-bidibordeaux hover:bg-rose-800 text-white font-bold px-5 py-2 rounded w-full"
-                    >
-                        Envoyer mon avis
-                    </button>
+                <!-- Message si non connecté -->
+                <div v-else class="mt-12 pt-8 border-t border-gray-200">
+                    <div class="text-center py-12">
+                        <h3 class="text-lg font-medium text-gray-900 mb-3">
+                            Partagez votre avis
+                        </h3>
+                        <p class="text-gray-600 mb-6">
+                            Connectez-vous pour laisser un commentaire sur ce
+                            produit
+                        </p>
+                        <div
+                            class="flex flex-col sm:flex-row gap-3 justify-center"
+                        >
+                            <Link
+                                :href="route('login')"
+                                class="px-6 py-2 bg-bidibordeaux text-white rounded-lg hover:bg-rose-800 transition font-medium"
+                            >
+                                Se connecter
+                            </Link>
+                            <Link
+                                :href="route('register')"
+                                class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
+                            >
+                                Créer un compte
+                            </Link>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <!-- Message si on est pas connecté -->
-            <p v-else class="text-center text-gray-500 mt-6">
-                <Link
-                    :href="route('login')"
-                    class="hover:text-rose-800 underline font-medium"
-                >
-                    Connectez-vous
-                </Link>
-                ou
-                <Link
-                    :href="route('register')"
-                    class="hover:text-rose-800 underline font-medium"
-                >
-                    créez un compte
-                </Link>
-                pour laisser un avis.
-            </p>
         </section>
 
         <section class="mt-20 mb-20 max-w-[1440px] mx-auto px-4 md:px-8">

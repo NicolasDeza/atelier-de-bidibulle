@@ -11,7 +11,7 @@ const form = useForm({
     name: "",
     email: "",
     message: "",
-    // honeypot anti-spam (ne PAS afficher)
+    // honeypot anti-spam
     website: "",
 });
 
