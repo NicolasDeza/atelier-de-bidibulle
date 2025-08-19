@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from "vue";
+import { Link } from "@inertiajs/vue3";
 
 const currentYear = ref(new Date().getFullYear());
 
@@ -140,11 +141,12 @@ const toggleSection = (key) => {
                 </h4>
                 <ul class="space-y-2">
                     <li>
-                        <a
-                            href="#"
+                        <Link
+                            :href="route('shipping.returns')"
                             class="hover:border-b hover:border-black transition"
-                            >Livraison et retours</a
                         >
+                            Livraison et retours
+                        </Link>
                     </li>
                     <li>
                         <a
@@ -154,18 +156,28 @@ const toggleSection = (key) => {
                         >
                     </li>
                     <li>
-                        <a
-                            href="#"
+                        <Link
+                            :href="route('terms.conditions')"
                             class="hover:border-b hover:border-black transition"
-                            >Conditions générales de vente</a
                         >
+                            Conditions générales de vente
+                        </Link>
                     </li>
                     <li>
-                        <a
-                            href="#"
+                        <Link
+                            :href="route('privacy.policy')"
                             class="hover:border-b hover:border-black transition"
-                            >Politique de confidentialité</a
                         >
+                            Politique de confidentialité
+                        </Link>
+                    </li>
+                    <li>
+                        <Link
+                            :href="route('legal.notice')"
+                            class="hover:border-b hover:border-black transition"
+                        >
+                            Mentions légales
+                        </Link>
                     </li>
                 </ul>
             </nav>

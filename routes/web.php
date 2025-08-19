@@ -83,7 +83,7 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::get('/dashboard', function () {
-        // ✅ Voir les commandes sur le dashboard
+        //  Voir les commandes sur le dashboard
         $orders = \App\Models\Order::with(['orderProducts.product'])
             ->latest()
             ->take(10)
@@ -116,4 +116,14 @@ Route::middleware(['auth','verified'])->prefix('admin')->name('admin.')->group(f
     });
 });
 
+// Conditions générales / Livraisons et retours / Politique de confidentialité
+Route::get('/livraison-retours', fn () => Inertia::render('ShippingReturns'))->name('shipping.returns');
+Route::get('/conditions-generales', fn () => Inertia::render('TermsOfService'))->name('terms.conditions');
+Route::get('/politique-confidentialite', fn () => Inertia::render('PrivacyPolicy'))->name('privacy.policy');
+Route::get('/mentions-legales', fn () => Inertia::render('LegalNotice'))->name('legal.notice');
+Route::get('/mentions-legales', fn () => Inertia::render('LegalNotice'))->name('legal.notice');
 
+
+// Page contact
+
+// Route::get('/contact')
