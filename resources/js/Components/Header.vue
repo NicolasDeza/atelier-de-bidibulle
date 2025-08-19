@@ -164,11 +164,12 @@ const logout = () => {
                         </div>
                     </li>
                     <li>
-                        <a
-                            href="#"
+                        <Link
+                            :href="route('contact')"
                             class="pb-1 border-b-2 border-transparent hover:border-black transition"
-                            >Contact</a
                         >
+                            Contact
+                        </Link>
                     </li>
                     <li>
                         <a

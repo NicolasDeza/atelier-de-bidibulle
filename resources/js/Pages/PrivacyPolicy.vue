@@ -71,8 +71,9 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
                         Aucune donnée de carte n’est stockée sur le Site.
                     </li>
                     <li>
-                        <strong>Support / contact :</strong> contenu du message
-                        et email.
+                        <strong>Formulaire de contact :</strong> nom, adresse
+                        email, contenu du message (finalité : répondre à votre
+                        demande).
                     </li>
                     <li><strong>Newsletter :</strong> email et préférences.</li>
                     <li>
@@ -138,6 +139,16 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
                             <strong>Base :</strong> consentement (cookies non
                             essentiels), ou exemption si configuré en
                             conséquence.
+                        </p>
+                    </div>
+                    <div class="border-l-4 border-indigo-500 pl-4">
+                        <h3 class="font-semibold">
+                            Réponse aux demandes via formulaire
+                        </h3>
+                        <p>
+                            <strong>Base :</strong> intérêt légitime (art.
+                            6(1)(f)) — nous utilisons vos données uniquement
+                            pour traiter et répondre à votre demande de contact.
                         </p>
                     </div>
                 </div>
@@ -240,7 +251,10 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
                     </li>
                     <li>
                         <strong>Messages de contact :</strong>
-                        <strong>[24]</strong> mois.
+
+                        Messages reçus via le formulaire de contact sont
+                        conservés <strong>24 mois</strong> maximum, puis
+                        supprimés.
                     </li>
                     <li>
                         <strong>Newsletter :</strong> jusqu’au désabonnement.

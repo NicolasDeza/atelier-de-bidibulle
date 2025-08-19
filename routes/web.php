@@ -14,6 +14,7 @@ use App\Http\Controllers\CheckoutPaymentController;
 use App\Http\Controllers\CartCheckoutController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\ContactController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
@@ -74,8 +75,6 @@ Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('
 Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
 Route::get('/categorie/{category}', [CategoryController::class, 'show'])->name('categories.show');
 
-Route::get('/categorie/{category}', [CategoryController::class, 'show'])->name('categories.show');
-
 
 Route::middleware([
     'auth:sanctum',
@@ -121,9 +120,9 @@ Route::get('/livraison-retours', fn () => Inertia::render('ShippingReturns'))->n
 Route::get('/conditions-generales', fn () => Inertia::render('TermsOfService'))->name('terms.conditions');
 Route::get('/politique-confidentialite', fn () => Inertia::render('PrivacyPolicy'))->name('privacy.policy');
 Route::get('/mentions-legales', fn () => Inertia::render('LegalNotice'))->name('legal.notice');
-Route::get('/mentions-legales', fn () => Inertia::render('LegalNotice'))->name('legal.notice');
-
 
 // Page contact
-
-// Route::get('/contact')
+Route::get('/contact', fn () => Inertia::render('Contact'))->name('contact');
+Route::post('/contact', [ContactController::class, 'send'])
+    ->middleware('throttle:6,1') // simple anti-abus : 6 req / minute
+    ->name('contact.send');
