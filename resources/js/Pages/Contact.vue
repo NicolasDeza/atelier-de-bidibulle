@@ -285,12 +285,15 @@ const submitForm = () => {
                                     <span
                                         v-if="form.processing"
                                         class="flex items-center"
+                                        aria-live="polite"
                                     >
                                         <svg
                                             class="animate-spin -ml-1 mr-3 h-4 w-4 text-white"
                                             xmlns="http://www.w3.org/2000/svg"
                                             fill="none"
                                             viewBox="0 0 24 24"
+                                            role="status"
+                                            aria-hidden="true"
                                         >
                                             <circle
                                                 class="opacity-25"
@@ -309,7 +312,10 @@ const submitForm = () => {
                                         Envoi en cours...
                                     </span>
                                     <span v-else class="flex items-center">
-                                        <i class="fas fa-paper-plane mr-2"></i>
+                                        <i
+                                            class="fas fa-paper-plane mr-2"
+                                            aria-hidden="true"
+                                        ></i>
                                         Envoyer le message
                                     </span>
                                 </PrimaryButton>
