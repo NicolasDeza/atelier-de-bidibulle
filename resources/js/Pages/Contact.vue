@@ -41,7 +41,7 @@ const submitForm = () => {
     </Head>
 
     <PublicLayout>
-        <div class="max-w-[1440px] mx-auto py-12 px-6">
+        <div class="max-w-[1440px] mx-auto py-20 px-6">
             <!-- En-tête -->
             <div class="text-center mb-12">
                 <h1 class="text-3xl font-bold text-gray-900 mb-4">
