@@ -1,14 +1,137 @@
 <script setup>
-import { ref } from "vue";
+import { ref, watch, nextTick } from "vue";
 import { Link, usePage, router } from "@inertiajs/vue3";
+import axios from "axios";
+import { useNavigation } from "@/Composables/useNavigation";
 
 const page = usePage();
 const mobileMenuOpen = ref(false);
 const mobileCategoriesOpen = ref(false);
+const searchQuery = ref("");
+const searchQueryMobile = ref("");
+const suggestions = ref([]);
+const suggestionsMobile = ref([]);
+const showSuggestions = ref(false);
+const showSuggestionsMobile = ref(false);
+const searchTimeout = ref(null);
 
 const logout = () => {
     router.post(route("logout"));
 };
+
+const fetchSuggestions = async (query, isMobile = false) => {
+    if (query.length < 2) {
+        if (isMobile) {
+            suggestionsMobile.value = [];
+            showSuggestionsMobile.value = false;
+        } else {
+            suggestions.value = [];
+            showSuggestions.value = false;
+        }
+        return;
+    }
+
+    try {
+        const response = await axios.get("/search/suggestions", {
+            params: { q: query },
+        });
+
+        if (isMobile) {
+            suggestionsMobile.value = response.data;
+            showSuggestionsMobile.value = true; // Toujours afficher le dropdown
+        } else {
+            suggestions.value = response.data;
+            showSuggestions.value = true; // Toujours afficher le dropdown
+        }
+    } catch (error) {
+        console.error("Erreur lors de la recherche:", error);
+    }
+};
+
+const debouncedSearch = (query, isMobile = false) => {
+    if (searchTimeout.value) {
+        clearTimeout(searchTimeout.value);
+    }
+
+    searchTimeout.value = window.setTimeout(() => {
+        fetchSuggestions(query, isMobile);
+    }, 300);
+};
+
+const delayedHideSuggestions = () => {
+    window.setTimeout(() => {
+        hideSuggestions();
+    }, 200);
+};
+
+watch(searchQuery, (newQuery) => {
+    debouncedSearch(newQuery, false);
+});
+
+watch(searchQueryMobile, (newQuery) => {
+    debouncedSearch(newQuery, true);
+});
+
+const handleSearch = (query) => {
+    hideSuggestions();
+    if (query.trim()) {
+        router.get(route("products.index"), { search: query.trim() });
+    } else {
+        router.get(route("products.index"));
+    }
+};
+
+const handleSearchDesktop = () => {
+    handleSearch(searchQuery.value);
+};
+
+const handleSearchMobile = () => {
+    handleSearch(searchQueryMobile.value);
+    mobileMenuOpen.value = false;
+};
+
+const handleKeydown = (event, isMobile = false) => {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        if (isMobile) {
+            handleSearchMobile();
+        } else {
+            handleSearchDesktop();
+        }
+    } else if (event.key === "Escape") {
+        hideSuggestions();
+    }
+};
+
+const selectSuggestion = (item, isMobile = false) => {
+    if (item.type === "category") {
+        router.visit(route("products.index", { category: item.slug }));
+    } else {
+        router.visit(route("products.show", item.slug));
+    }
+    hideSuggestions();
+    if (isMobile) {
+        mobileMenuOpen.value = false;
+    }
+};
+
+const hideSuggestions = () => {
+    showSuggestions.value = false;
+    showSuggestionsMobile.value = false;
+};
+
+const handleFocus = (isMobile = false) => {
+    const query = isMobile ? searchQueryMobile.value : searchQuery.value;
+    if (query.length >= 2) {
+        if (isMobile) {
+            showSuggestionsMobile.value = suggestionsMobile.value.length > 0;
+        } else {
+            showSuggestions.value = suggestions.value.length > 0;
+        }
+    }
+};
+
+const { goToAllProducts } = useNavigation();
 </script>
 
 <template>
@@ -35,15 +158,102 @@ const logout = () => {
             <!-- Recherche (desktop) -->
             <div class="hidden md:block w-full max-w-[18rem] mx-4 relative">
                 <input
+                    v-model="searchQuery"
                     type="text"
-                    placeholder="Rechercher"
+                    placeholder="Rechercher un produit..."
+                    @keydown="handleKeydown($event, false)"
+                    @focus="handleFocus(false)"
+                    @blur="delayedHideSuggestions"
                     class="w-full pl-4 pr-10 py-2 text-sm border border-gray-300 rounded-full shadow-sm outline-none focus:border-gray-400"
                 />
-                <span
-                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300"
+                <button
+                    @click="handleSearchDesktop"
+                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
                     <i class="fa-solid fa-magnifying-glass"></i>
-                </span>
+                </button>
+
+                <!-- Suggestions dropdown -->
+                <div
+                    v-if="showSuggestions"
+                    class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
+                >
+                    <!-- Résultats de recherche -->
+                    <div v-if="suggestions.length > 0">
+                        <div
+                            v-for="item in suggestions"
+                            :key="`${item.type}-${item.id}`"
+                            @click="selectSuggestion(item, false)"
+                            class="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        >
+                            <!-- Affichage pour les catégories -->
+                            <div
+                                v-if="item.type === 'category'"
+                                class="flex items-center w-full"
+                            >
+                                <div
+                                    class="w-12 h-12 bg-bidibordeaux rounded flex items-center justify-center mr-3"
+                                >
+                                    <i
+                                        class="fa-solid fa-folder text-white"
+                                    ></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p
+                                        class="text-sm font-medium text-gray-900"
+                                    >
+                                        {{ item.name }}
+                                    </p>
+                                    <p class="text-xs text-gray-500">
+                                        Catégorie •
+                                        {{ item.products_count }} produit(s)
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Affichage pour les produits -->
+                            <template v-else>
+                                <img
+                                    :src="item.image_url"
+                                    :alt="item.name"
+                                    class="w-12 h-12 object-cover rounded mr-3"
+                                />
+                                <div class="flex-1">
+                                    <p
+                                        class="text-sm font-medium text-gray-900"
+                                    >
+                                        {{ item.name }}
+                                    </p>
+                                    <p class="text-xs text-gray-500">
+                                        {{ item.category }}
+                                    </p>
+                                    <p
+                                        class="text-sm font-semibold text-bidibordeaux"
+                                    >
+                                        {{ item.price }}€
+                                    </p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Aucun résultat trouvé -->
+                    <div
+                        v-else-if="searchQuery.length >= 2"
+                        class="p-4 text-center"
+                    >
+                        <p class="text-gray-500 text-sm mb-3">
+                            Aucun résultat trouvé
+                        </p>
+                        <button
+                            type="button"
+                            @click="goToAllProducts($event)"
+                            class="bg-bidibordeaux text-white px-4 py-2 rounded-md text-sm hover:bg-rose-800 active:bg-rose-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bidibordeaux/40"
+                        >
+                            Voir tous les produits
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- Icônes & burger -->
@@ -95,15 +305,100 @@ const logout = () => {
         <div class="block md:hidden px-8 pt-2 pb-4 border-b">
             <div class="relative">
                 <input
+                    v-model="searchQueryMobile"
                     type="text"
-                    placeholder="Rechercher"
+                    placeholder="Rechercher un produit..."
+                    @keydown="handleKeydown($event, true)"
+                    @focus="handleFocus(true)"
+                    @blur="delayedHideSuggestions"
                     class="w-full pl-4 pr-10 py-2 text-sm border border-gray-300 rounded-full shadow-sm outline-none"
                 />
-                <span
-                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300"
+                <button
+                    @click="handleSearchMobile"
+                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
                     <i class="fa-solid fa-magnifying-glass"></i>
-                </span>
+                </button>
+
+                <!-- Suggestions dropdown mobile -->
+                <div
+                    v-if="showSuggestionsMobile"
+                    class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto"
+                >
+                    <!-- Résultats de recherche mobile -->
+                    <div v-if="suggestionsMobile.length > 0">
+                        <div
+                            v-for="item in suggestionsMobile"
+                            :key="`${item.type}-${item.id}`"
+                            @click="selectSuggestion(item, true)"
+                            class="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        >
+                            <!-- Affichage pour les catégories -->
+                            <div
+                                v-if="item.type === 'category'"
+                                class="flex items-center w-full"
+                            >
+                                <div
+                                    class="w-10 h-10 bg-bidibordeaux rounded flex items-center justify-center mr-3"
+                                >
+                                    <i
+                                        class="fa-solid fa-folder text-white text-sm"
+                                    ></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p
+                                        class="text-sm font-medium text-gray-900"
+                                    >
+                                        {{ item.name }}
+                                    </p>
+                                    <p class="text-xs text-gray-500">
+                                        {{ item.products_count }} produit(s)
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Affichage pour les produits -->
+                            <template v-else>
+                                <img
+                                    :src="item.image_url"
+                                    :alt="item.name"
+                                    class="w-10 h-10 object-cover rounded mr-3"
+                                />
+                                <div class="flex-1">
+                                    <p
+                                        class="text-sm font-medium text-gray-900"
+                                    >
+                                        {{ item.name }}
+                                    </p>
+                                    <p class="text-xs text-gray-500">
+                                        {{ item.category }}
+                                    </p>
+                                    <p
+                                        class="text-sm font-semibold text-bidibordeaux"
+                                    >
+                                        {{ item.price }}€
+                                    </p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Aucun résultat trouvé mobile -->
+                    <div
+                        v-else-if="searchQueryMobile.length >= 2"
+                        class="p-4 text-center"
+                    >
+                        <p class="text-gray-500 text-sm mb-3">
+                            Aucun résultat trouvé
+                        </p>
+                        <button
+                            @click="goToAllProducts"
+                            class="bg-bidibordeaux text-white px-4 py-2 rounded-md text-sm hover:bg-opacity-90 transition-colors"
+                        >
+                            Voir tous les produits
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 

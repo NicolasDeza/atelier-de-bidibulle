@@ -4,6 +4,7 @@ import Pagination from "@/Components/Pagination.vue";
 import CategoryFilter from "@/Components/CategoryFilter.vue";
 import PublicLayout from "@/Layouts/PublicLayout.vue";
 import { computed } from "vue";
+import { useNavigation } from "@/Composables/useNavigation";
 
 const props = defineProps({
     products: Object,
@@ -14,6 +15,9 @@ const props = defineProps({
     },
     categoryName: String,
 });
+
+// Utiliser le composable useNavigation
+const { goToAllProducts } = useNavigation();
 
 const pageTitle = computed(() => {
     if (props.categoryName) {
@@ -66,8 +70,9 @@ const pageTitle = computed(() => {
                     Aucun produit trouvé dans cette catégorie.
                 </p>
                 <button
-                    @click="$inertia.visit(route('products.index'))"
-                    class="mt-4 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    type="button"
+                    @click="goToAllProducts"
+                    class="mt-4 px-6 py-2 bg-bidibordeaux text-white rounded-lg hover:bg-rose-800 active:bg-rose-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bidibordeaux/40"
                 >
                     Voir tous les produits
                 </button>

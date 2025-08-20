@@ -23,6 +23,15 @@ class ProductController extends Controller
             });
         }
 
+        // Filtrer par recherche si le paramètre search est présent
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
         $products = $query->paginate(12);
 
         // Récupérer toutes les catégories pour les filtres avec le nombre de produits
@@ -33,7 +42,8 @@ class ProductController extends Controller
         return Inertia::render('Products/Index', [
             'products' => $products,
             'categories' => $categories,
-            'currentCategory' => $request->category ?? 'all'
+            'currentCategory' => $request->category ?? 'all',
+            'currentSearch' => $request->search ?? ''
         ]);
     }
 

@@ -15,6 +15,7 @@ use App\Http\Controllers\CartCheckoutController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\SearchController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
@@ -126,3 +127,5 @@ Route::get('/contact', fn () => Inertia::render('Contact'))->name('contact');
 Route::post('/contact', [ContactController::class, 'send'])
     ->middleware('throttle:6,1') // simple anti-abus : 6 req / minute
     ->name('contact.send');
+
+Route::get('/search/suggestions', [SearchController::class, 'suggestions'])->name('search.suggestions');
