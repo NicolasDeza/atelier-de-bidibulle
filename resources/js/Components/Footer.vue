@@ -16,7 +16,6 @@ const toggleSection = (key) => {
     openSections.value[key] = !openSections.value[key];
 };
 
-// Newsletter form - déplacé en dehors de toggleSection
 const newsletterForm = useForm({
     email: "",
     website: "", // honeypot
@@ -25,6 +24,9 @@ const newsletterForm = useForm({
 const submitNewsletter = () => {
     newsletterForm.post(route("newsletter.store"), {
         preserveScroll: true,
+        onSuccess: () => {
+            newsletterForm.reset("email");
+        },
     });
 };
 </script>
