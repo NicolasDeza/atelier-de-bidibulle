@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from "vue";
-import { Link } from "@inertiajs/vue3";
+import { Link, useForm, usePage } from "@inertiajs/vue3";
+import Toast from "@/Components/Toast.vue";
 
 const currentYear = ref(new Date().getFullYear());
 
@@ -14,6 +15,18 @@ const openSections = ref({
 const toggleSection = (key) => {
     openSections.value[key] = !openSections.value[key];
 };
+
+// Newsletter form - déplacé en dehors de toggleSection
+const newsletterForm = useForm({
+    email: "",
+    website: "", // honeypot
+});
+
+const submitNewsletter = () => {
+    newsletterForm.post(route("newsletter.store"), {
+        preserveScroll: true,
+    });
+};
 </script>
 
 <template>
@@ -22,16 +35,32 @@ const toggleSection = (key) => {
         <h2 class="text-center text-2xl font-bold mb-6">
             Abonnez-vous à notre newsletter
         </h2>
+
         <form
+            @submit.prevent="submitNewsletter"
             class="max-w-xl mx-auto flex flex-col sm:flex-row items-center gap-4 px-6"
         >
             <input
+                v-model="newsletterForm.email"
+                name="email"
                 type="email"
+                required
                 placeholder="Saisissez votre e-mail"
-                class="w-full sm:flex-1 px-4 py-2 border border-gray-200 rounded shadow-sm outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus:border-gray-400"
+                class="w-full sm:flex-1 px-4 py-2 border border-gray-200 rounded shadow-sm outline-none focus:border-gray-400"
             />
+            <!-- Honeypot: doit rester vide -->
+            <input
+                v-model="newsletterForm.website"
+                name="website"
+                type="text"
+                tabindex="-1"
+                autocomplete="off"
+                class="hidden"
+            />
+
             <button
                 type="submit"
+                :disabled="newsletterForm.processing"
                 class="w-full sm:w-auto bg-bidibordeaux text-white px-6 py-2 rounded hover:bg-rose-800 transition"
             >
                 Abonne-toi

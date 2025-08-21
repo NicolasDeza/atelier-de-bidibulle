@@ -28,13 +28,13 @@ class ContactMail extends Mailable
      * Get the message envelope.
      */
     public function envelope(): Envelope
-    {
-        return new Envelope(
-            from: new Address('contact@atelier-bidibulle.com', 'Atelier de Bidibulle'),
-            replyTo: [new Address($this->email, $this->name)],
-            subject: 'Nouveau message via le formulaire de contact',
-        );
-    }
+{
+    return new Envelope(
+        from: new Address(config('mail.from.address'), config('mail.from.name')),
+        replyTo: [new Address($this->email, $this->name)],
+        subject: 'Nouveau message via le formulaire de contact',
+    );
+}
 
     /**
      * Get the message content definition.

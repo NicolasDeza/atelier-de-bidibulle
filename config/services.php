@@ -39,5 +39,9 @@ return [
     'key' => env('STRIPE_PUBLIC'),
     'secret' => env('STRIPE_SECRET'),
 ],
+    'brevo' => [
+        'key'     => env('BREVO_API_KEY'),
+        'list_id' => (int) env('BREVO_LIST_ID', 0),
+    ],
 
 ];

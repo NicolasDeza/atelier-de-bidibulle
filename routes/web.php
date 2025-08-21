@@ -16,6 +16,7 @@ use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\NewsletterSubscriberController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
@@ -129,3 +130,14 @@ Route::post('/contact', [ContactController::class, 'send'])
     ->name('contact.send');
 
 Route::get('/search/suggestions', [SearchController::class, 'suggestions'])->name('search.suggestions');
+
+
+// Newsletter subscription
+Route::post('/newsletter', [NewsletterSubscriberController::class, 'store'])
+    ->middleware('throttle:10,1') // anti-spam basique (10 req / min)
+    ->name('newsletter.store');
+
+Route::post('/newsletter/unsubscribe', [NewsletterSubscriberController::class, 'unsubscribe'])
+    ->middleware('throttle:10,1')
+    ->name('newsletter.unsubscribe');
+

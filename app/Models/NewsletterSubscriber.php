@@ -10,7 +10,8 @@ class NewsletterSubscriber extends Model
     /** @use HasFactory<\Database\Factories\NewsletterSubscriberFactory> */
     use HasFactory;
 
-        protected $fillable = [
-        'email',
+      protected $fillable = ['email', 'is_active', 'unsubscribe_token'];
+      protected $casts = [
+        'is_active' => 'boolean',
     ];
 }
