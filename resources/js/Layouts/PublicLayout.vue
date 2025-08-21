@@ -4,6 +4,7 @@ import Footer from "@/Components/Footer.vue";
 import { usePage } from "@inertiajs/vue3";
 import { ref, watch } from "vue";
 import Toast from "@/Components/Toast.vue";
+import CookieBanner from "@/Components/CookieBanner.vue";
 
 const page = usePage();
 const toast = ref({ msg: null, type: "success" });
@@ -36,5 +37,6 @@ watch(
             :type="toast.type"
             @hidden="toast.msg = null"
         />
+        <CookieBanner />
     </div>
 </template>

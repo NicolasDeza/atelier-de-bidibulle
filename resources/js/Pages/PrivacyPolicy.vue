@@ -156,33 +156,24 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
 
             <!-- 4. Cookies -->
             <section class="mb-8">
-                <h2 class="text-xl font-semibold mb-2">4 Cookies</h2>
+                <h2 class="text-xl font-semibold mb-2">4. Cookies</h2>
                 <p>
-                    Nous utilisons des cookies
-                    <strong>nécessaires</strong> (fonctionnement du Site) et,
-                    sous réserve de votre choix, des cookies
-                    <strong>analytics</strong> et <strong>marketing</strong>.
-                    Vous pouvez gérer vos préférences à tout moment via le
-                    bandeau cookies ou votre navigateur.
+                    Notre site utilise uniquement des cookies
+                    <strong>nécessaires</strong> à son bon fonctionnement
+                    (gestion du panier, session utilisateur, sécurité et
+                    paiement). Ces cookies ne collectent aucune donnée
+                    personnelle à des fins publicitaires.
                 </p>
-                <ul class="list-disc ml-6 mt-2">
-                    <li>
-                        Nécessaires : session, sécurité — durée : session / [XX]
-                        mois.
-                    </li>
-                    <li>
-                        Analytics : [Nom outil] — durée max recommandée : 13
-                        mois.
-                    </li>
-                    <li>
-                        Marketing : uniquement si vous y consentez — durée selon
-                        partenaire.
-                    </li>
-                </ul>
+                <p class="mt-2">
+                    Vous pouvez gérer ou supprimer les cookies nécessaires via
+                    les paramètres de votre navigateur. Toutefois, leur
+                    suppression peut affecter certaines fonctionnalités
+                    essentielles du site.
+                </p>
                 <p class="text-sm text-gray-600 mt-2">
                     Voir aussi nos
-                    <Link :href="route('terms.conditions')" class="underline"
-                        >Conditions générales</Link
+                    <Link :href="route('terms.conditions')" class="underline">
+                        Conditions générales </Link
                     >.
                 </p>
             </section>
