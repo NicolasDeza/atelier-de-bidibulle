@@ -12,7 +12,7 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
     </Head>
 
     <PublicLayout>
-        <div class="max-w-[900px] py-12 px-10">
+        <div class="max-w-[1440px] mx-auto py-12 px-4 sm:px-6 lg:px-8">
             <h1 class="text-3xl font-bold mb-2">
                 Politique de confidentialité
             </h1>
