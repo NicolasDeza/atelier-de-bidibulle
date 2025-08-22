@@ -147,12 +147,14 @@ const { goToAllProducts } = useNavigation();
         <div class="flex items-center justify-between px-10 py-4 border-b">
             <!-- Logo -->
             <div class="flex items-center gap-6">
-                <img
-                    src="/TFE-Logo-Noir.png"
-                    alt="Logo"
-                    class="h-14 w-14 object-contain"
-                />
-                <span class="text-2xl font-bold">Atelier De Bidibulle</span>
+                <Link :href="route('home')" class="flex items-center gap-6">
+                    <img
+                        src="/TFE-Logo-Noir.png"
+                        alt="Logo Atelier De Bidibulle"
+                        class="h-14 w-14 object-contain"
+                    />
+                    <span class="text-2xl font-bold">Atelier De Bidibulle</span>
+                </Link>
             </div>
 
             <!-- Recherche (desktop) -->

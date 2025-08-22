@@ -141,3 +141,5 @@ Route::post('/newsletter/unsubscribe', [NewsletterSubscriberController::class, '
     ->middleware('throttle:10,1')
     ->name('newsletter.unsubscribe');
 
+// Service client
+Route::get("/service-client", fn () => Inertia::render('ServiceClient'))->name('service.client');

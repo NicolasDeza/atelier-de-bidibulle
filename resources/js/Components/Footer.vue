@@ -121,11 +121,12 @@ const submitNewsletter = () => {
                 </h4>
                 <ul class="space-y-2">
                     <li>
-                        <a
-                            href="#"
+                        <Link
+                            :href="route('home')"
                             class="hover:border-b hover:border-black transition"
-                            >Accueil</a
                         >
+                            Accueil
+                        </Link>
                     </li>
                     <li>
                         <a
@@ -135,18 +136,20 @@ const submitNewsletter = () => {
                         >
                     </li>
                     <li>
-                        <a
-                            href="#"
+                        <Link
+                            :href="route('products.index')"
                             class="hover:border-b hover:border-black transition"
-                            >Produits</a
                         >
+                            Produits
+                        </Link>
                     </li>
                     <li>
-                        <a
-                            href="#"
+                        <Link
+                            :href="route('contact')"
                             class="hover:border-b hover:border-black transition"
-                            >Contact</a
                         >
+                            Contact
+                        </Link>
                     </li>
                 </ul>
             </nav>
@@ -180,11 +183,11 @@ const submitNewsletter = () => {
                         </Link>
                     </li>
                     <li>
-                        <a
-                            href="#"
+                        <Link
+                            :href="route('service.client')"
                             class="hover:border-b hover:border-black transition"
-                            >Service client</a
-                        >
+                            >Service client
+                        </Link>
                     </li>
                     <li>
                         <Link
@@ -238,13 +241,6 @@ const submitNewsletter = () => {
                             href="#"
                             class="hover:border-b hover:border-black transition"
                             >Idées cadeaux</a
-                        >
-                    </li>
-                    <li>
-                        <a
-                            href="#"
-                            class="hover:border-b hover:border-black transition"
-                            >Newsletter</a
                         >
                     </li>
                 </ul>
