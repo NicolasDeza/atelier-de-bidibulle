@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Http\RedirectResponse;
 use Stripe\Stripe;
 use Stripe\Checkout\Session as StripeSession;
+use Stripe\PaymentIntent;
 
 class CheckoutPaymentController extends Controller
 {
@@ -27,7 +27,7 @@ class CheckoutPaymentController extends Controller
         foreach ($order->orderProducts as $op) {
             $name = optional($op->product)->name ?? 'Produit';
 
-            // 🔥 AJOUTER LA PERSONNALISATION AU NOM DU PRODUIT
+            // Personnalisation dans le nom de ligne
             if ($op->customization) {
                 $name .= ' - Personnalisation: ' . $op->customization;
             }
@@ -59,8 +59,12 @@ class CheckoutPaymentController extends Controller
                 'mode'       => 'payment',
                 'locale'     => 'fr',
                 'line_items' => $lineItems,
-                'shipping_address_collection' => ['allowed_countries' => ['FR','BE']],
+
+                // Collecte d’adresse de livraison
+                'shipping_address_collection' => ['allowed_countries' => ['FR', 'BE']],
                 'phone_number_collection'     => ['enabled' => true],
+
+                // Deux modes: remise en main propre + Bpost
                 'shipping_options' => [
                     [
                         'shipping_rate_data' => [
@@ -81,15 +85,19 @@ class CheckoutPaymentController extends Controller
                         ],
                     ],
                 ],
+
                 'customer_email' => $order->customer_email,
-                // ✅ CORRECTION : Utiliser checkout.payment.return
+
+                // Retour avec session_id pour relecture
                 'success_url'    => route('checkout.payment.return', $order) . '?session_id={CHECKOUT_SESSION_ID}',
                 'cancel_url'     => route('cart.index'),
+
                 'metadata'       => [
                     'order_id'   => (string) $order->id,
                     'order_uuid' => (string) $order->uuid,
-                    // 🔥 AJOUTER LES PERSONNALISATIONS EN MÉTADONNÉES
-                    'customizations' => json_encode($order->orderProducts->pluck('customization', 'product_id')->filter()),
+                    'customizations' => json_encode(
+                        $order->orderProducts->pluck('customization', 'product_id')->filter()
+                    ),
                 ],
             ],
             ['idempotency_key' => 'order-'.$order->uuid.'-create-session']
@@ -109,55 +117,38 @@ class CheckoutPaymentController extends Controller
      */
     public function return(Request $request, Order $order)
     {
-        \Log::info('[Checkout] Page retour appelée', [
-            'order_id' => $order->id,
-            'query' => $request->all(),
-        ]);
-
         $sessionId = $request->get('session_id');
-        if (!$sessionId) {
-            // Pas de session_id, on affiche quand même la page succès
-            \Log::warning('[Checkout] Pas de session_id');
-        }
 
         $shipping = null;
-        $address = null;
+        $address  = null;
 
         if ($sessionId) {
             Stripe::setApiKey(config('services.stripe.secret'));
 
             try {
                 $session = StripeSession::retrieve([
-                    'id' => $sessionId,
-                    'expand' => ['shipping_cost.shipping_rate'], // 🔥 RETIRER shipping_details
+                    'id'     => $sessionId,
+                    // pas d'expand shipping_details
+                    // on veut l'objet payment_intent
+                    'expand' => ['shipping_cost.shipping_rate', 'payment_intent'],
                 ]);
 
-                // Mode de livraison
+                // Mode de livraison (label + montant)
                 $shipping = [
-                    'label' => $session->shipping_cost->shipping_rate->display_name ?? '—',
+                    'label'        => $session->shipping_cost->shipping_rate->display_name
+                        ?? $session->shipping_cost->shipping_rate
+                        ?? '—',
                     'amount_total' => $session->shipping_cost->amount_total ?? 0,
                 ];
 
-                // Adresse - accès direct sans expand
-                $address = null;
-                if (isset($session->shipping_details->address)) {
-                    $address = [
-                        'name'        => $session->shipping_details->name ?? '',
-                        'line1'       => $session->shipping_details->address->line1 ?? '',
-                        'line2'       => $session->shipping_details->address->line2 ?? '',
-                        'postal_code' => $session->shipping_details->address->postal_code ?? '',
-                        'city'        => $session->shipping_details->address->city ?? '',
-                        'country'     => $session->shipping_details->address->country ?? '',
-                    ];
-                }
+                // Adresse — 3 sources possibles
+                $address = $this->extractAddressFromSessionOrPI($session);
             } catch (\Throwable $e) {
-                \Log::error('[Checkout] Erreur récupération session Stripe', [
-                    'err' => $e->getMessage(),
-                ]);
+                \Log::error('[Checkout] Erreur récupération session Stripe', ['err' => $e->getMessage()]);
             }
         }
 
-        // Marquer comme payé (backup si webhook pas encore passé)
+        // Sauvegarde de secours (si le webhook n'a pas encore tourné)
         if ($order->payment_status !== 'paid') {
             $order->payment_status = 'paid';
             $order->paid_at        = $order->paid_at ?: now();
@@ -183,76 +174,127 @@ class CheckoutPaymentController extends Controller
     }
 
     /**
-     * Page succès après paiement Stripe
+     * Page succès (route alternative)
      */
     public function success(Request $request, $orderUuid)
-{
-    \Log::info('[Checkout] Page succès appelée', [
-        'order_uuid' => $orderUuid,
-        'query' => $request->all(),
-    ]);
+    {
+        $sessionId = $request->get('session_id');
+        if (!$sessionId) {
+            abort(404, 'Session Stripe manquante');
+        }
 
-    $sessionId = $request->get('session_id');
-    if (!$sessionId) {
-        abort(404, 'Session Stripe manquante');
-    }
+        Stripe::setApiKey(config('services.stripe.secret'));
 
-    Stripe::setApiKey(config('services.stripe.secret'));
+        try {
+            $session = StripeSession::retrieve([
+                'id'     => $sessionId,
+                // pas d'expand shipping_details
+                'expand' => ['shipping_cost.shipping_rate', 'payment_intent'],
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('[Checkout] Erreur récupération session Stripe', ['err' => $e->getMessage()]);
+            abort(500, 'Impossible de récupérer la session Stripe');
+        }
 
-    try {
-        $session = StripeSession::retrieve([
-            'id' => $sessionId,
-            'expand' => ['shipping_cost.shipping_rate', 'shipping_details'],
-        ]);
-    } catch (\Throwable $e) {
-        \Log::error('[Checkout] Erreur récupération session Stripe', [
-            'err' => $e->getMessage(),
-        ]);
-        abort(500, 'Impossible de récupérer la session Stripe');
-    }
+        $order = Order::where('uuid', $orderUuid)->firstOrFail();
 
-    $order = Order::where('uuid', $orderUuid)->firstOrFail();
-
-    // 📦 Mode de livraison (fallback si vide)
-    $shipping = [
-        'label' => $session->shipping_cost->shipping_rate->display_name
-            ?? $session->shipping_cost->shipping_rate
-            ?? '—',
-        'amount_total' => $session->shipping_cost->amount_total ?? 0,
-    ];
-
-    // 🏠 Adresse (fallback si vide)
-    if (isset($session->shipping_details->address)) {
-        $address = [
-            'name'        => $session->shipping_details->name ?? '',
-            'line1'       => $session->shipping_details->address->line1 ?? '',
-            'line2'       => $session->shipping_details->address->line2 ?? '',
-            'postal_code' => $session->shipping_details->address->postal_code ?? '',
-            'city'        => $session->shipping_details->address->city ?? '',
-            'country'     => $session->shipping_details->address->country ?? '',
+        // Livraison
+        $shipping = [
+            'label'        => $session->shipping_cost->shipping_rate->display_name
+                ?? $session->shipping_cost->shipping_rate
+                ?? '—',
+            'amount_total' => $session->shipping_cost->amount_total ?? 0,
         ];
-    } else {
-        $address = null;
+
+        // Adresse — mêmes fallbacks
+        $address = $this->extractAddressFromSessionOrPI($session);
+
+        // Sauvegarde de secours
+        if ($order->payment_status !== 'paid') {
+            $order->payment_status = 'paid';
+            $order->paid_at        = $order->paid_at ?: now();
+            $order->ordered_at     = $order->ordered_at ?: now();
+            $order->save();
+        }
+
+        // Vider panier
+        $this->clearCartSession();
+        $this->clearDbCart($order->user_id, $order->cart_token ?? $request->session()->get('cart_token'));
+
+        return inertia('Checkout/Success', [
+            'order'    => $order,
+            'shipping' => $shipping,
+            'address'  => $address,
+        ]);
     }
 
-    // ✅ Marquer comme payé immédiatement
-    if ($order->payment_status !== 'paid') {
-        $order->payment_status = 'paid';
-        $order->paid_at        = $order->paid_at ?: now();
-        $order->ordered_at     = $order->ordered_at ?: now();
-        $order->save();
+    /**
+     * Fallback robuste pour extraire l'adresse
+     */
+    private function extractAddressFromSessionOrPI($session): ?array
+    {
+        // 1) shipping_details (si Stripe l'a mis)
+        if (isset($session->shipping_details->address)) {
+            return [
+                'name'        => $session->shipping_details->name ?? '',
+                'line1'       => $session->shipping_details->address->line1 ?? '',
+                'line2'       => $session->shipping_details->address->line2 ?? '',
+                'postal_code' => $session->shipping_details->address->postal_code ?? '',
+                'city'        => $session->shipping_details->address->city ?? '',
+                'country'     => $session->shipping_details->address->country ?? '',
+            ];
+        }
+
+        // 2) customer_details.address
+        if (isset($session->customer_details->address)) {
+            return [
+                'name'        => $session->customer_details->name ?? '',
+                'line1'       => $session->customer_details->address->line1 ?? '',
+                'line2'       => $session->customer_details->address->line2 ?? '',
+                'postal_code' => $session->customer_details->address->postal_code ?? '',
+                'city'        => $session->customer_details->address->city ?? '',
+                'country'     => $session->customer_details->address->country ?? '',
+            ];
+        }
+
+        // 3) payment_intent.shipping.address (on a déjà expand payment_intent)
+        try {
+            // Si c'est un objet
+            if (is_object($session->payment_intent ?? null)) {
+                if (isset($session->payment_intent->shipping->address)) {
+                    return [
+                        'name'        => $session->payment_intent->shipping->name ?? '',
+                        'line1'       => $session->payment_intent->shipping->address->line1 ?? '',
+                        'line2'       => $session->payment_intent->shipping->address->line2 ?? '',
+                        'postal_code' => $session->payment_intent->shipping->address->postal_code ?? '',
+                        'city'        => $session->payment_intent->shipping->address->city ?? '',
+                        'country'     => $session->payment_intent->shipping->address->country ?? '',
+                    ];
+                }
+            }
+            // Si c'est un ID (par prudence)
+            if (is_string($session->payment_intent ?? null)) {
+                $pi = PaymentIntent::retrieve([
+                    'id'     => $session->payment_intent,
+                    'expand' => ['latest_charge'],
+                ]);
+                if (isset($pi->latest_charge->shipping->address)) {
+                    return [
+                        'name'        => $pi->latest_charge->shipping->name ?? '',
+                        'line1'       => $pi->latest_charge->shipping->address->line1 ?? '',
+                        'line2'       => $pi->latest_charge->shipping->address->line2 ?? '',
+                        'postal_code' => $pi->latest_charge->shipping->address->postal_code ?? '',
+                        'city'        => $pi->latest_charge->shipping->address->city ?? '',
+                        'country'     => $pi->latest_charge->shipping->address->country ?? '',
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('[Checkout] Fallback PI/latest_charge impossible', ['err' => $e->getMessage()]);
+        }
+
+        return null;
     }
-
-    // ✅ Vider le panier
-    $this->clearCartSession();
-    $this->clearDbCart($order->user_id, $order->cart_token ?? $request->session()->get('cart_token'));
-
-    return inertia('Checkout/Success', [
-        'order'    => $order,
-        'shipping' => $shipping,
-        'address'  => $address,
-    ]);
-}
 
     /**
      * Vide le panier en session
@@ -275,7 +317,7 @@ class CheckoutPaymentController extends Controller
                 $cart->update(['status' => 'closed']);
             }
         }
-        
+
         // Pour les invités avec session_token
         if ($cartToken) {
             \App\Models\CartItem::where('session_token', $cartToken)->delete();

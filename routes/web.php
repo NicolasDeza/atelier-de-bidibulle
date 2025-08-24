@@ -67,6 +67,7 @@ Route::get('/checkout/return/{order}', [CheckoutPaymentController::class, 'retur
     ->name('checkout.payment.return');
 
 
+
     //! ROUTE AVIS
 // Routes pour les avis
 Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');

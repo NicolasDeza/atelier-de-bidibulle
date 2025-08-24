@@ -38,6 +38,7 @@ return [
     'stripe' => [
     'key' => env('STRIPE_PUBLIC'),
     'secret' => env('STRIPE_SECRET'),
+    'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
 ],
     'brevo' => [
         'key'     => env('BREVO_API_KEY'),
