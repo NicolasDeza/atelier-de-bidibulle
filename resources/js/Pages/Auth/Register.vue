@@ -25,23 +25,23 @@ const submit = () => {
     <Head title="Inscription" />
 
     <section
-        class="min-h-screen flex items-center justify-center py-16 px-4 bg-gray-50"
+        class="min-h-screen flex items-center justify-center py-4 px-3 bg-gray-50"
     >
         <div
-            class="w-full max-w-4xl bg-white shadow-md rounded-xl overflow-hidden grid grid-cols-1 md:grid-cols-2"
+            class="w-full max-w-4xl bg-white shadow-md rounded-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2"
         >
             <!-- Colonne gauche (image ou couleur) -->
-            <div class="hidden md:block bg-bidibordeaux"></div>
-            <!-- 👉 plus tard tu peux remplacer par une image :
-            <div class="hidden md:block bg-[url('/images/auth-bg.jpg')] bg-cover bg-center"></div> -->
+            <div class="hidden lg:block bg-bidibordeaux"></div>
 
             <!-- Colonne droite (formulaire) -->
-            <div class="p-8">
-                <h1 class="text-2xl font-bold mb-6 text-gray-900">
+            <div class="p-4 sm:p-6 lg:p-8">
+                <h1
+                    class="text-lg sm:text-xl lg:text-2xl font-bold mb-4 sm:mb-6 text-gray-900"
+                >
                     Créer un compte
                 </h1>
 
-                <form @submit.prevent="submit" class="space-y-4">
+                <form @submit.prevent="submit" class="space-y-4 sm:space-y-5">
                     <div>
                         <InputLabel for="name" value="Nom" />
                         <TextInput
@@ -109,50 +109,59 @@ const submit = () => {
                             $page.props.jetstream
                                 .hasTermsAndPrivacyPolicyFeature
                         "
-                        class="flex items-center"
+                        class="pt-2"
                     >
-                        <Checkbox
-                            id="terms"
-                            v-model:checked="form.terms"
-                            name="terms"
-                            required
-                        />
-                        <label for="terms" class="ml-2 text-sm text-gray-600">
-                            J’accepte les
-                            <a
-                                target="_blank"
-                                :href="route('terms.show')"
-                                class="underline hover:text-gray-900"
+                        <div class="flex items-start">
+                            <Checkbox
+                                id="terms"
+                                v-model:checked="form.terms"
+                                name="terms"
+                                required
+                                class="mt-1"
+                            />
+                            <label
+                                for="terms"
+                                class="ml-3 text-sm text-gray-600 leading-relaxed"
                             >
-                                conditions d’utilisation
-                            </a>
-                            et la
-                            <a
-                                target="_blank"
-                                :href="route('policy.show')"
-                                class="underline hover:text-gray-900"
-                            >
-                                politique de confidentialité </a
-                            >.
-                        </label>
+                                J'accepte les
+                                <a
+                                    target="_blank"
+                                    :href="route('terms.show')"
+                                    class="underline hover:text-gray-900"
+                                >
+                                    conditions d'utilisation
+                                </a>
+                                et la
+                                <a
+                                    target="_blank"
+                                    :href="route('policy.show')"
+                                    class="underline hover:text-gray-900"
+                                >
+                                    politique de confidentialité </a
+                                >.
+                            </label>
+                        </div>
                         <InputError class="mt-2" :message="form.errors.terms" />
                     </div>
 
-                    <div class="flex items-center justify-between mt-6">
-                        <Link
-                            :href="route('login')"
-                            class="underline text-sm text-gray-600 hover:text-gray-900"
-                        >
-                            Déjà inscrit ?
-                        </Link>
-
+                    <!-- Boutons avec plus d'espacement -->
+                    <div class="pt-4 sm:pt-6 space-y-3 sm:space-y-4">
                         <PrimaryButton
-                            class="bg-bidibordeaux hover:bg-rose-800 active:bg-rose-900 transition-colors"
+                            class="w-full bg-bidibordeaux hover:bg-rose-800 active:bg-rose-900 transition-colors justify-center text-sm sm:text-base"
                             :class="{ 'opacity-25': form.processing }"
                             :disabled="form.processing"
                         >
-                            S’inscrire
+                            S'inscrire
                         </PrimaryButton>
+
+                        <div class="text-center">
+                            <Link
+                                :href="route('login')"
+                                class="text-xs sm:text-sm text-gray-600 hover:text-gray-900 underline"
+                            >
+                                Déjà inscrit ? Se connecter
+                            </Link>
+                        </div>
                     </div>
                 </form>
             </div>

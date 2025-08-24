@@ -1,5 +1,5 @@
 <script setup>
-import { Link, router } from "@inertiajs/vue3";
+import { Link, router, Head } from "@inertiajs/vue3";
 import { computed, ref } from "vue";
 import PublicLayout from "@/Layouts/PublicLayout.vue";
 import Modal from "@/Components/Modal.vue";
@@ -94,6 +94,12 @@ const confirmClearCart = () => {
 </script>
 
 <template>
+    <Head title="Mon panier">
+        <meta
+            name="description"
+            content="Votre panier d'achats chez l'Atelier de Bidibule. Gérez vos articles, quantités et procédez au paiement sécurisé pour vos créations personnalisées."
+        />
+    </Head>
     <PublicLayout>
         <div class="max-w-[1440px] mx-auto px-4 md:px-8 py-8">
             <h1 class="text-3xl font-bold mb-8">Mon panier</h1>

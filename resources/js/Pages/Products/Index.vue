@@ -5,6 +5,7 @@ import CategoryFilter from "@/Components/CategoryFilter.vue";
 import PublicLayout from "@/Layouts/PublicLayout.vue";
 import { computed } from "vue";
 import { useNavigation } from "@/Composables/useNavigation";
+import { Head } from "@inertiajs/vue3";
 
 const props = defineProps({
     products: Object,
@@ -30,6 +31,13 @@ const pageTitle = computed(() => {
 </script>
 
 <template>
+    <Head title="Produits">
+        <meta
+            name="description"
+            content="Découvrez tous les produits de l’Atelier de Bidibule : créations personnalisées faites main pour naissances, cadeaux uniques et décorations."
+        />
+    </Head>
+
     <PublicLayout>
         <section class="max-w-[1440px] mx-auto p-8 mb-12">
             <h1 class="text-2xl font-bold mb-6">{{ pageTitle }}</h1>

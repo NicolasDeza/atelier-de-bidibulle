@@ -1,5 +1,5 @@
 <script setup>
-import { Link, router, usePage } from "@inertiajs/vue3";
+import { Link, router, usePage, Head } from "@inertiajs/vue3";
 import { ref, computed } from "vue";
 import PublicLayout from "@/Layouts/PublicLayout.vue";
 import SimilarProducts from "@/Components/SimilarProducts.vue";
@@ -165,6 +165,12 @@ const toggleFavorite = () => {
 </script>
 
 <template>
+    <Head :title="product.name">
+        <meta
+            name="description"
+            :content="`Découvrez ${product.name} — une création personnalisée faite main par l’Atelier de Bidibule. Idéal pour naissances, cadeaux et décorations uniques.`"
+        />
+    </Head>
     <PublicLayout>
         <section class="max-w-[1440px] mx-auto px-4 md:px-8 py-8">
             <!-- Fil d'Ariane -->
@@ -344,7 +350,7 @@ const toggleFavorite = () => {
             </div>
         </section>
         <!-- Section avis produit -->
-        <section class="mt-16 py-16">
+        <section class="py-10">
             <div class="max-w-4xl mx-auto px-6">
                 <h2 class="text-2xl font-bold mb-8 text-center">
                     Avis sur ce produit
@@ -570,7 +576,7 @@ const toggleFavorite = () => {
             </div>
         </section>
 
-        <section class="mt-20 mb-20 max-w-[1440px] mx-auto px-4 md:px-8">
+        <section class="mb-20 max-w-[1440px] mx-auto px-4 md:px-8">
             <SimilarProducts :products="props.similarProducts" />
         </section>
 

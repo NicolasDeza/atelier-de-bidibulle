@@ -1,5 +1,5 @@
 <script setup>
-import { Link } from "@inertiajs/vue3";
+import { Link, Head } from "@inertiajs/vue3";
 import PublicLayout from "@/Layouts/PublicLayout.vue";
 
 const props = defineProps({
@@ -8,6 +8,12 @@ const props = defineProps({
 </script>
 
 <template>
+    <Head title="Mes favoris">
+        <meta
+            name="description"
+            content="Retrouvez tous vos produits favoris de l'Atelier de Bidibule. Créations personnalisées, cadeaux de naissance et décorations sauvegardées pour plus tard."
+        />
+    </Head>
     <PublicLayout>
         <section class="max-w-[1440px] mx-auto px-4 py-8">
             <h1 class="text-2xl font-bold mb-6">Mes Favoris</h1>

@@ -529,24 +529,6 @@ const { goToAllProducts } = useNavigation();
                 <li>
                     <Link :href="route('home')" class="block">Accueil</Link>
                 </li>
-                <li v-if="page.props.auth.user">
-                    <Link
-                        :href="route('wishlist.index')"
-                        class="flex items-center gap-2"
-                    >
-                        <i class="fa-solid fa-heart text-black"></i>
-                        <span>Mes Favoris</span>
-                    </Link>
-                </li>
-                <li>
-                    <Link
-                        :href="route('cart.index')"
-                        class="flex items-center gap-2"
-                    >
-                        <i class="fa-solid fa-shopping-cart text-black"></i>
-                        <span>Panier</span>
-                    </Link>
-                </li>
                 <li>
                     <div>
                         <button
@@ -595,21 +577,54 @@ const { goToAllProducts } = useNavigation();
                         </ul>
                     </div>
                 </li>
-                <li><a href="#" class="block">Contact</a></li>
+                <li>
+                    <Link :href="route('contact')" class="block">Contact</Link>
+                </li>
                 <li><a href="#" class="block">À propos</a></li>
+
+                <!-- Icônes côte à côte -->
+                <li class="flex items-center gap-6 py-2">
+                    <!-- Icône Panier -->
+                    <Link :href="route('cart.index')" class="flex items-center">
+                        <i
+                            class="fa-solid fa-shopping-cart text-black text-2xl"
+                        ></i>
+                    </Link>
+
+                    <!-- Icône Favoris (si connecté) -->
+                    <Link
+                        v-if="page.props.auth.user"
+                        :href="route('wishlist.index')"
+                        class="flex items-center gap-2"
+                    >
+                        <i class="fa-solid fa-heart text-black text-2xl"></i>
+                        <span>Mes Favoris</span>
+                    </Link>
+
+                    <!-- Icône Profil -->
+                    <Link
+                        v-if="page.props.auth.user"
+                        :href="route('profile.show')"
+                        class="flex items-center"
+                    >
+                        <i class="fa-solid fa-user text-black text-2xl"></i>
+                    </Link>
+                    <Link
+                        v-else
+                        :href="route('login')"
+                        class="flex items-center"
+                    >
+                        <i class="fa-solid fa-user text-black text-2xl"></i>
+                    </Link>
+                </li>
             </ul>
 
             <!-- Auth mobile -->
             <div class="flex gap-4 mt-6">
                 <template v-if="page.props.auth.user">
-                    <Link
-                        href="/dashboard"
-                        class="text-sm px-4 py-2 rounded border border-black"
-                        >Mon compte</Link
-                    >
                     <button
                         @click="logout"
-                        class="border border-black px-4 py-2 text-sm rounded"
+                        class="flex-1 border border-black px-4 py-2 text-sm rounded text-center"
                     >
                         Déconnexion
                     </button>
@@ -617,12 +632,12 @@ const { goToAllProducts } = useNavigation();
                 <template v-else>
                     <Link
                         :href="route('register')"
-                        class="bg-bidibordeaux text-white px-4 py-2 text-sm rounded"
+                        class="flex-1 bg-bidibordeaux text-white px-4 py-2 text-sm rounded text-center"
                         >S'inscrire</Link
                     >
                     <Link
                         :href="route('login')"
-                        class="border border-black px-4 py-2 text-sm rounded"
+                        class="flex-1 border border-black px-4 py-2 text-sm rounded text-center"
                         >Connexion</Link
                     >
                 </template>

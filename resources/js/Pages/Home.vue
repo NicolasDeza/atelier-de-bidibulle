@@ -1,5 +1,5 @@
 <script setup>
-import { Link } from "@inertiajs/vue3";
+import { Link, Head } from "@inertiajs/vue3";
 import PublicLayout from "@/Layouts/PublicLayout.vue";
 
 const props = defineProps({
@@ -8,6 +8,13 @@ const props = defineProps({
 </script>
 
 <template>
+    <Head title="Accueil">
+        <meta
+            name="description"
+            content="Atelier de Bidibule — créations personnalisées faites main (naissance, cadeaux, déco). Paiement sécurisé, livraison rapide en Belgique/UE."
+        />
+    </Head>
+
     <PublicLayout>
         <!-- Bannière pleine largeur -->
         <section

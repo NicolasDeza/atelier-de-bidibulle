@@ -24,9 +24,9 @@ const scrollRight = () => {
     scrollRef.value?.scrollBy({ left: 300, behavior: "smooth" });
 };
 </script>
-
+s
 <template>
-    <section v-if="products.length" class="mt-20">
+    <section v-if="products.length" class="mt-16">
         <div class="max-w-[1440px] mx-auto px-4">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-2xl font-bold">Vous pourriez aussi aimer</h3>
