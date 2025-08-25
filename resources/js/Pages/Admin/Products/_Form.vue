@@ -1,5 +1,5 @@
 <script setup>
-import { useForm } from "@inertiajs/vue3";
+import { useForm, Link } from "@inertiajs/vue3";
 import { ref, watch, computed } from "vue";
 import InputField from "@/Components/Form/InputField.vue";
 import {
@@ -153,9 +153,7 @@ function submit() {
 </script>
 
 <template>
-    <div
-        class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8 px-4"
-    >
+    <div class="py-8 px-4">
         <div class="max-w-4xl mx-auto">
             <!-- Header -->
             <div
@@ -183,7 +181,7 @@ function submit() {
             >
                 <form @submit.prevent="submit" class="space-y-6">
                     <!-- Grid -->
-                    <div class="grid gap-6 md:grid-cols-2">
+                    <div class="grid gap-4 sm:gap-6 md:grid-cols-2">
                         <InputField
                             v-model="form.name"
                             label="Nom du produit"
@@ -221,7 +219,7 @@ function submit() {
                         />
 
                         <!-- Catégorie -->
-                        <div class="space-y-2">
+                        <div class="space-y-2 md:col-span-2">
                             <label class="text-sm font-medium text-slate-700">
                                 Catégorie <span class="text-red-500">*</span>
                             </label>
@@ -280,7 +278,7 @@ function submit() {
                             </p>
                         </div>
 
-                        <!-- Image (compact) -->
+                        <!-- Image -->
                         <div class="space-y-2 md:col-span-2">
                             <label class="text-sm font-medium text-slate-700">
                                 Image
@@ -289,7 +287,9 @@ function submit() {
                                 >
                             </label>
 
-                            <div class="flex items-center gap-3">
+                            <div
+                                class="flex flex-col sm:flex-row sm:items-center gap-3"
+                            >
                                 <input
                                     id="image-upload"
                                     type="file"
@@ -309,7 +309,7 @@ function submit() {
                                     Parcourir…
                                 </label>
 
-                                <!-- Nom du fichier / état -->
+                                <!-- Nom du fichier -->
                                 <span
                                     class="text-sm text-slate-600 truncate max-w-[240px]"
                                 >
@@ -324,7 +324,7 @@ function submit() {
                                     }}
                                 </span>
 
-                                <!-- Preview locale si un nouveau fichier a été choisi -->
+                                <!-- Preview locale -->
                                 <img
                                     v-if="imagePreview"
                                     :src="imagePreview"
@@ -332,7 +332,7 @@ function submit() {
                                     class="h-10 w-10 object-cover rounded border"
                                 />
 
-                                <!-- Preview de l'image existante (édition, aucun nouveau fichier) -->
+                                <!-- Preview existante -->
                                 <img
                                     v-else-if="!isCreate && product?.image"
                                     :src="product.image_url"
@@ -383,18 +383,33 @@ function submit() {
 
                     <!-- Actions -->
                     <div
-                        class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between pt-6 border-t border-slate-200 gap-3"
+                        class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pt-6 border-t border-slate-200"
                     >
-                        <a
-                            href="/admin/products"
-                            class="inline-flex items-center justify-center h-10 px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-400 active:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-all duration-150"
+                        <Link
+                            :href="route('admin.products.index')"
+                            class="inline-flex items-center gap-2 h-10 px-4 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 active:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition w-full sm:w-auto justify-center"
                         >
-                            ← Retour
-                        </a>
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                class="h-4 w-4 text-gray-500"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M15 19l-7-7 7-7"
+                                />
+                            </svg>
+                            Retour
+                        </Link>
+
                         <button
                             type="submit"
                             :disabled="form.processing"
-                            class="inline-flex items-center justify-center h-10 px-6 py-2 bg-indigo-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-indigo-700 hover:shadow-md active:bg-indigo-800 active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                            class="inline-flex items-center justify-center h-10 px-6 py-2 bg-indigo-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-indigo-700 hover:shadow-md active:bg-indigo-800 active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
                         >
                             <svg
                                 v-if="form.processing"

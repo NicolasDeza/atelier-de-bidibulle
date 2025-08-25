@@ -5,7 +5,9 @@ const props = defineProps({ product: Object, categories: Array });
 
 <template>
     <div class="p-6">
-        <h1 class="text-2xl font-bold mb-4">Modifier : {{ product.name }}</h1>
+        <h1 class="text-2xl font-bold mb-4 text-center">
+            Modifier : {{ product.name }}
+        </h1>
         <Form
             :product="product"
             :categories="categories"

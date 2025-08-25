@@ -35,98 +35,259 @@ const submitTracking = () => {
 </script>
 
 <template>
-    <div class="max-w-4xl mx-auto p-6 space-y-6">
-        <div class="flex items-center gap-4">
-            <Link
-                :href="route('admin.orders.index', { token })"
-                class="text-blue-600 hover:underline"
+    <div class="min-h-screen py-4 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl w-full mx-auto space-y-4 sm:space-y-6">
+            <!-- Header responsive -->
+            <div
+                class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
             >
-                ← Retour aux commandes
-            </Link>
-            <h1 class="text-2xl font-bold">Commande {{ order.uuid }}</h1>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Détails commande -->
-            <div class="bg-white rounded-xl shadow p-6">
-                <h2 class="text-lg font-semibold mb-4">Détails</h2>
-                <div class="space-y-2 text-sm">
-                    <div>
-                        <strong>Client:</strong> {{ order.customer_email }}
-                    </div>
-                    <div>
-                        <strong>Total:</strong> {{ euros(order.total_price) }}
-                        {{ order.currency }}
-                    </div>
-                    <div>
-                        <strong>Statut paiement:</strong>
-                        {{ order.payment_status }}
-                    </div>
-                    <div>
-                        <strong>Payée le:</strong> {{ order.paid_at || "—" }}
-                    </div>
-                    <div>
-                        <strong>Livraison:</strong>
-                        {{ order.shipping_method_label || "—" }}
-                    </div>
+                <div
+                    class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4"
+                >
+                    <Link
+                        :href="route('admin.orders.index', { token })"
+                        class="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 w-fit"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-4 w-4 text-gray-500"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M15 19l-7-7 7-7"
+                            />
+                        </svg>
+                        Retour
+                    </Link>
+                    <h1 class="text-xl sm:text-2xl font-semibold break-all">
+                        Commande {{ order.uuid }}
+                    </h1>
                 </div>
             </div>
 
-            <!-- Suivi -->
-            <div class="bg-white rounded-xl shadow p-6">
-                <h2 class="text-lg font-semibold mb-4">Suivi</h2>
-                <form @submit.prevent="submitTracking" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium mb-1"
-                            >Numéro de suivi</label
-                        >
-                        <input
-                            v-model="form.tracking_number"
-                            type="text"
-                            class="w-full rounded border-gray-300"
-                            placeholder="Entrez le numéro de suivi"
-                        />
+            <!-- Card unique responsive -->
+            <div class="rounded-lg bg-white shadow p-4 sm:p-6">
+                <!-- Détails commande -->
+                <div class="mb-6 sm:mb-8">
+                    <h2 class="text-lg font-semibold mb-4">
+                        Détails de la commande
+                    </h2>
+                    <div class="space-y-3 text-sm">
+                        <!-- Mobile: Stack vertical, Desktop: 2 colonnes -->
+                        <div class="grid grid-cols-1 gap-3">
+                            <div
+                                class="flex flex-col sm:flex-row sm:justify-between"
+                            >
+                                <span class="font-medium text-gray-700"
+                                    >Client:</span
+                                >
+                                <span class="text-gray-900 break-all">{{
+                                    order.customer_email
+                                }}</span>
+                            </div>
+                            <div
+                                class="flex flex-col sm:flex-row sm:justify-between"
+                            >
+                                <span class="font-medium text-gray-700"
+                                    >Total:</span
+                                >
+                                <span class="font-semibold text-gray-900"
+                                    >{{ euros(order.total_price) }}
+                                    {{ order.currency }}</span
+                                >
+                            </div>
+                            <div
+                                class="flex flex-col sm:flex-row sm:justify-between"
+                            >
+                                <span class="font-medium text-gray-700"
+                                    >Statut paiement:</span
+                                >
+                                <span
+                                    class="inline-flex items-center rounded-md bg-green-100 text-green-700 px-2 py-0.5 text-xs font-medium w-fit"
+                                    >{{ order.payment_status }}</span
+                                >
+                            </div>
+                            <div
+                                class="flex flex-col sm:flex-row sm:justify-between"
+                            >
+                                <span class="font-medium text-gray-700"
+                                    >Payée le:</span
+                                >
+                                <span class="text-gray-900">{{
+                                    order.paid_at || "—"
+                                }}</span>
+                            </div>
+                            <div
+                                class="flex flex-col sm:flex-row sm:justify-between"
+                            >
+                                <span class="font-medium text-gray-700"
+                                    >Livraison:</span
+                                >
+                                <span class="text-gray-900">{{
+                                    order.shipping_method_label || "—"
+                                }}</span>
+                            </div>
+                        </div>
                     </div>
-                    <button
-                        type="submit"
-                        :disabled="form.processing"
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-                    >
-                        {{
-                            form.processing
-                                ? "Enregistrement..."
-                                : "Enregistrer"
-                        }}
-                    </button>
-                </form>
-            </div>
-        </div>
+                </div>
 
-        <!-- Articles -->
-        <div class="bg-white rounded-xl shadow overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-100">
-                    <tr>
-                        <th class="px-4 py-2 text-left">Produit</th>
-                        <th class="px-4 py-2 text-left">Quantité</th>
-                        <th class="px-4 py-2 text-left">Prix unitaire</th>
-                        <th class="px-4 py-2 text-left">Total</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    <tr v-for="item in order.order_products" :key="item.id">
-                        <td class="px-4 py-2">{{ item.product.name }}</td>
-                        <td class="px-4 py-2">{{ item.quantity }}</td>
-                        <td class="px-4 py-2">
-                            {{ euros(item.price) }} {{ order.currency }}
-                        </td>
-                        <td class="px-4 py-2">
-                            {{ euros(item.price * item.quantity) }}
-                            {{ order.currency }}
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                <!-- Suivi -->
+                <div class="border-t pt-4 sm:pt-6">
+                    <h2 class="text-lg font-semibold mb-4">
+                        Suivi de la commande
+                    </h2>
+                    <form
+                        @submit.prevent="submitTracking"
+                        class="w-full max-w-md"
+                    >
+                        <div class="mb-4">
+                            <label
+                                class="block text-sm font-medium text-gray-700 mb-2"
+                                >Numéro de suivi</label
+                            >
+                            <input
+                                v-model="form.tracking_number"
+                                type="text"
+                                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                placeholder="Entrez le numéro de suivi"
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            :disabled="form.processing"
+                            class="inline-flex h-9 items-center justify-center rounded-md bg-indigo-600 px-4 text-sm font-medium text-white transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+                        >
+                            {{
+                                form.processing
+                                    ? "Enregistrement..."
+                                    : "Enregistrer"
+                            }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Articles responsive -->
+            <div class="rounded-lg bg-white shadow">
+                <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold">Articles commandés</h2>
+                </div>
+
+                <!-- Mobile: Cards -->
+                <div class="sm:hidden">
+                    <div
+                        v-for="item in order.order_products"
+                        :key="item.id"
+                        class="border-b border-gray-200 p-4 last:border-b-0"
+                    >
+                        <div class="space-y-2">
+                            <div class="font-medium text-gray-900">
+                                {{ item.product.name }}
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Quantité:</span>
+                                <span
+                                    class="inline-flex items-center rounded-md bg-gray-100 text-gray-700 px-2 py-0.5 text-xs font-medium"
+                                >
+                                    {{ item.quantity }}
+                                </span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600"
+                                    >Prix unitaire:</span
+                                >
+                                <span>
+                                    {{ euros(item.price) }} {{ order.currency }}
+                                </span>
+                            </div>
+                            <div
+                                class="flex justify-between text-sm font-semibold"
+                            >
+                                <span>Total:</span>
+                                <span>
+                                    {{ euros(item.price * item.quantity) }}
+                                    {{ order.currency }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Desktop: Table -->
+                <div class="hidden sm:block">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-gray-50 text-left">
+                                <tr>
+                                    <th
+                                        class="px-4 py-3 font-medium text-gray-700"
+                                    >
+                                        Produit
+                                    </th>
+                                    <th
+                                        class="px-4 py-3 font-medium text-gray-700"
+                                    >
+                                        Quantité
+                                    </th>
+                                    <th
+                                        class="px-4 py-3 font-medium text-gray-700"
+                                    >
+                                        Prix unitaire
+                                    </th>
+                                    <th
+                                        class="px-4 py-3 font-medium text-gray-700 text-right"
+                                    >
+                                        Total
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="item in order.order_products"
+                                    :key="item.id"
+                                    class="border-t last:border-b"
+                                >
+                                    <td class="px-4 py-3">
+                                        <div class="font-medium text-gray-900">
+                                            {{ item.product.name }}
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span
+                                            class="inline-flex items-center rounded-md bg-gray-100 text-gray-700 px-2 py-0.5 text-xs font-medium"
+                                        >
+                                            {{ item.quantity }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="text-gray-900">
+                                            {{ euros(item.price) }}
+                                            {{ order.currency }}
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 text-right">
+                                        <div
+                                            class="font-semibold text-gray-900"
+                                        >
+                                            {{
+                                                euros(
+                                                    item.price * item.quantity
+                                                )
+                                            }}
+                                            {{ order.currency }}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </template>
