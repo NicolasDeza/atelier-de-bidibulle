@@ -14,6 +14,8 @@ use App\Http\Controllers\CheckoutPaymentController;
 use App\Http\Controllers\CartCheckoutController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\AdminOrderController;
+use App\Http\Controllers\OrderShippingController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\NewsletterSubscriberController;
@@ -92,14 +94,15 @@ Route::middleware([
             ->get();
 
         return Inertia::render('Dashboard', [
-            'orders' => $orders->map(fn($order) => [
-                'id' => $order->id,
-                'uuid' => $order->uuid,
-                'payment_status' => $order->payment_status,
-                'total_price' => (float) $order->total_price,
-                'paid_at' => $order->paid_at?->format('d/m/Y H:i'),
-                'items_count' => $order->orderProducts->count(),
-            ])
+    'orders' => $orders->map(fn($order) => [
+        'id' => $order->id,
+        'uuid' => $order->uuid,
+        'payment_status' => $order->payment_status,
+        'total_price' => (float) $order->total_price,
+        'paid_at' => $order->paid_at?->format('d/m/Y H:i'),
+        // 🔥 correction ici
+        'items_count' => $order->orderProducts->sum('quantity'),
+    ])
         ]);
     })->name('dashboard');
 });
@@ -107,14 +110,18 @@ Route::middleware([
 // Routes ADMIN CRUD
 Route::middleware(['auth','verified'])->prefix('admin')->name('admin.')->group(function () {
     Route::middleware('is_admin')->group(function () {
+        // Produits (déjà en place)
         Route::get('/products', [AdminProductController::class, 'index'])->name('products.index');
         Route::get('/products/create', [AdminProductController::class, 'create'])->name('products.create');
         Route::post('/products', [AdminProductController::class, 'store'])->name('products.store');
-
-
         Route::get('/products/{product:id}/edit', [AdminProductController::class, 'edit'])->name('products.edit');
         Route::put('/products/{product:id}', [AdminProductController::class, 'update'])->name('products.update');
         Route::delete('/products/{product:id}', [AdminProductController::class, 'destroy'])->name('products.destroy');
+
+        //  Commandes
+        Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
+        Route::post('/orders/{order}/tracking', [OrderShippingController::class, 'update'])->name('orders.tracking.update');
     });
 });
 
@@ -143,4 +150,5 @@ Route::post('/newsletter/unsubscribe', [NewsletterSubscriberController::class, '
     ->name('newsletter.unsubscribe');
 
 // Service client
+Route::get("/service-client", fn () => Inertia::render('ServiceClient'))->name('service.client');
 Route::get("/service-client", fn () => Inertia::render('ServiceClient'))->name('service.client');

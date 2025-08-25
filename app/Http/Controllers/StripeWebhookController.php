@@ -177,6 +177,7 @@ class StripeWebhookController extends Controller
 
             // Décrément stock (verrou produit)
             $order->loadMissing('orderProducts.product');
+            
             foreach ($order->orderProducts as $op) {
                 $product = $op->product()->lockForUpdate()->first();
                 if ($product) {
