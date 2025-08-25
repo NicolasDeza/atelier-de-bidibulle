@@ -41,9 +41,11 @@ const props = defineProps({
                 </Link>
             </div>
 
-            <p v-else class="text-gray-500">
-                Vous n’avez encore aucun produit en favoris.
-            </p>
+            <div v-else class="flex justify-center items-center min-h-[300px]">
+                <p class="text-gray-500 text-center">
+                    Vous n'avez encore aucun produit en favoris.
+                </p>
+            </div>
         </section>
     </PublicLayout>
 </template>
