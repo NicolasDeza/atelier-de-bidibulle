@@ -11,38 +11,56 @@ class AdminOrderController extends Controller
     /**
      * Display a listing of the resource.
      */
-         public function index(Request $request)
-{
-    $q     = trim((string) $request->get('q', ''));
-    $scope = $request->get('scope', 'to-ship'); // to-ship | shipped | all
+    public function index(Request $request)
+    {
+        $q     = trim((string) $request->get('q', ''));
+        $scope = $request->get('scope', 'to-ship');
 
-    $orders = Order::query()
-        ->select([
-            'id','uuid','customer_email','currency','total_price',
-            'payment_status','shipping_status','shipping_method_label',
-            'shipping_total','paid_at','shipped_at','shipping_address_json'
-        ])
-        ->when($scope === 'to-ship', fn($qq) => $qq
-            ->where('payment_status','paid')
-            ->where(function($w){
-                $w->whereNull('shipping_status')
-                  ->orWhere('shipping_status','!=','shipped');
+        $orders = Order::query()
+            ->select([
+                'id','uuid','customer_email','currency','total_price',
+                'payment_status','status','shipping_status','shipping_method_label',
+                'shipping_total','paid_at','shipped_at','shipping_address_json',
+                'tracking_number',
+            ])
+            // ✅ Changer l'alias pour correspondre à la vue
+            ->selectSub(
+                \App\Models\OrderProduct::selectRaw('COALESCE(SUM(quantity), 0)')
+                    ->whereColumn('order_id', 'orders.id'),
+                'items_count'
+            )
+            // À préparer = payé mais pas expédié
+            ->when($scope === 'to-ship', fn($qq) => $qq
+                ->where('payment_status','paid')
+                ->whereNull('shipped_at')
+                ->whereNull('tracking_number')
+                ->where(function($w){
+                    $w->whereNull('shipping_status')
+                      ->orWhere('shipping_status','!=','shipped');
+                })
+            )
+            // Expédiées = au moins un signal d'expédition
+            ->when($scope === 'shipped', fn($qq) => $qq->where(function($w){
+                $w->where('shipping_status','shipped')
+                  ->orWhereNotNull('shipped_at')
+                  ->orWhereNotNull('tracking_number');
             }))
-        ->when($scope === 'shipped', fn($qq) => $qq->where('shipping_status','shipped'))
-        ->when($q !== '', fn($qq) => $qq->where(fn($w) =>
-            $w->where('uuid','like',"%{$q}%")
-              ->orWhere('customer_email','like',"%{$q}%")))
-        ->withSum('orderProducts', 'quantity') // 👈 c’est ça qui change
-        ->orderByDesc('paid_at')
-        ->paginate(20)
-        ->withQueryString();
+            // Recherche
+            ->when($q !== '', fn($qq) => $qq->where(fn($w) =>
+                $w->where('uuid','like',"%{$q}%")
+                  ->orWhere('customer_email','like',"%{$q}%")
+            ))
+            ->orderByRaw('paid_at IS NULL, paid_at DESC')
+            ->paginate(20)
+            ->withQueryString();
 
-    return Inertia::render('Admin/Orders/Index', [
-        'orders'  => $orders,
-        'filters' => ['q'=>$q,'scope'=>$scope],
-        'token'   => $request->query('token'),
-    ]);
-}
+        return Inertia::render('Admin/Orders/Index', [
+            'orders'  => $orders,
+            'filters' => ['q'=>$q,'scope'=>$scope],
+            'token'   => $request->query('token'),
+        ]);
+    }
+
 
 
 

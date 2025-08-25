@@ -176,57 +176,60 @@ class CheckoutPaymentController extends Controller
     /**
      * Page succès (route alternative)
      */
-    public function success(Request $request, $orderUuid)
-    {
-        $sessionId = $request->get('session_id');
-        if (!$sessionId) {
-            abort(404, 'Session Stripe manquante');
-        }
+   public function success(Request $request, string $orderUuid)
+{
+    $sessionId = $request->string('session_id');
+    abort_if(!$sessionId, 404, 'Session Stripe manquante');
 
-        Stripe::setApiKey(config('services.stripe.secret'));
+    Stripe::setApiKey(config('services.stripe.secret'));
 
-        try {
-            $session = StripeSession::retrieve([
-                'id'     => $sessionId,
-                // pas d'expand shipping_details
-                'expand' => ['shipping_cost.shipping_rate', 'payment_intent'],
-            ]);
-        } catch (\Throwable $e) {
-            \Log::error('[Checkout] Erreur récupération session Stripe', ['err' => $e->getMessage()]);
-            abort(500, 'Impossible de récupérer la session Stripe');
-        }
-
-        $order = Order::where('uuid', $orderUuid)->firstOrFail();
-
-        // Livraison
-        $shipping = [
-            'label'        => $session->shipping_cost->shipping_rate->display_name
-                ?? $session->shipping_cost->shipping_rate
-                ?? '—',
-            'amount_total' => $session->shipping_cost->amount_total ?? 0,
-        ];
-
-        // Adresse — mêmes fallbacks
-        $address = $this->extractAddressFromSessionOrPI($session);
-
-        // Sauvegarde de secours
-        if ($order->payment_status !== 'paid') {
-            $order->payment_status = 'paid';
-            $order->paid_at        = $order->paid_at ?: now();
-            $order->ordered_at     = $order->ordered_at ?: now();
-            $order->save();
-        }
-
-        // Vider panier
-        $this->clearCartSession();
-        $this->clearDbCart($order->user_id, $order->cart_token ?? $request->session()->get('cart_token'));
-
-        return inertia('Checkout/Success', [
-            'order'    => $order,
-            'shipping' => $shipping,
-            'address'  => $address,
+    try {
+        $session = StripeSession::retrieve([
+            'id'     => $sessionId,
+            'expand' => ['shipping_cost.shipping_rate', 'payment_intent'],
         ]);
+    } catch (\Throwable $e) {
+        \Log::error('[Checkout] Session retrieve failed', ['err' => $e->getMessage()]);
+        abort(500, 'Impossible de récupérer la session Stripe');
     }
+
+    $order = Order::where('uuid', $orderUuid)->firstOrFail();
+
+    // Montant payé côté Stripe (en centimes)
+    $amountTotalCts = $session->amount_total
+        ?? ($session->payment_intent->amount_received ?? null)
+        ?? ($session->payment_intent->amount ?? null);
+
+    $totalEuro = $amountTotalCts ? round($amountTotalCts / 100, 2) : null;
+
+    // ✅ Fallback sûr : si la DB n’a pas (encore) le bon total, on le met à jour ici
+    if ($totalEuro !== null && (float) $order->total_price !== (float) $totalEuro) {
+        $order->total_price = $totalEuro;
+        // on ne touche PAS au stock / e-mails ici
+        $order->save();
+    }
+
+    // Livraison / adresse (inchangé)
+    $shipping = [
+        'label'        => $session->shipping_cost->shipping_rate->display_name
+            ?? $session->shipping_cost->shipping_rate
+            ?? '—',
+        'amount_total' => $session->shipping_cost->amount_total ?? 0,
+    ];
+
+    $address = $session->shipping_details->address
+        ?? ($session->payment_intent->shipping->address ?? null)
+        ?? ($session->payment_intent->latest_charge->shipping->address ?? null)
+        ?? ($session->customer_details->address ?? null);
+
+    return inertia('Checkout/Success', [
+        'order'    => $order->fresh(),
+        'shipping' => $shipping,
+        'address'  => $address,
+        'total'    => $totalEuro ?? (float) $order->total_price, // valeur sûre pour l’affichage
+    ]);
+}
+
 
     /**
      * Fallback robuste pour extraire l'adresse

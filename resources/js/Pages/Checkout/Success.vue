@@ -6,12 +6,14 @@ const props = defineProps({
     shipping: Object,
     address: Object,
 });
+
+// ⚠️ Frais Stripe sont en centimes → convertir en €
 const euros = (cts) => ((cts || 0) / 100).toFixed(2);
 </script>
 
 <template>
     <div class="max-w-2xl mx-auto p-8 space-y-8">
-        <!--  En-tête avec icône check -->
+        <!-- En-tête -->
         <div class="flex flex-col items-center text-center space-y-4">
             <div
                 class="flex items-center justify-center w-16 h-16 rounded-full bg-green-100"
@@ -40,7 +42,7 @@ const euros = (cts) => ((cts || 0) / 100).toFixed(2);
             </p>
         </div>
 
-        <!--  Bloc récap commande -->
+        <!-- Récap commande -->
         <div class="bg-white shadow rounded-xl p-6 space-y-4">
             <div class="flex justify-between items-center">
                 <span class="font-semibold text-gray-800">Commande :</span>
@@ -49,12 +51,12 @@ const euros = (cts) => ((cts || 0) / 100).toFixed(2);
             <div class="flex justify-between items-center">
                 <span class="font-semibold text-gray-800">Total payé :</span>
                 <span class="text-gray-900 font-bold">
-                    {{ order?.total_price }} {{ order?.currency }}
+                    {{ order?.total_price.toFixed(2) }} {{ order?.currency }}
                 </span>
             </div>
         </div>
 
-        <!--  Livraison -->
+        <!-- Livraison -->
         <div class="bg-gray-50 rounded-xl p-6 space-y-2">
             <div class="font-medium text-gray-800">Livraison</div>
             <div class="text-gray-600">Mode : {{ shipping?.label || "—" }}</div>
@@ -63,7 +65,7 @@ const euros = (cts) => ((cts || 0) / 100).toFixed(2);
             </div>
         </div>
 
-        <!--  Adresse -->
+        <!-- Adresse -->
         <div class="bg-gray-50 rounded-xl p-6 space-y-2">
             <div class="font-medium text-gray-800">Adresse de livraison</div>
             <div v-if="address" class="text-gray-600">
@@ -88,7 +90,6 @@ const euros = (cts) => ((cts || 0) / 100).toFixed(2);
             >
                 Retour à l'accueil
             </Link>
-
             <Link
                 :href="route('products.index')"
                 class="flex-1 bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 px-6 py-3 rounded-lg text-center font-medium transition-colors"

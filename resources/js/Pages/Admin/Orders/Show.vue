@@ -1,5 +1,5 @@
 <script setup>
-import { Link, useForm } from "@inertiajs/vue3";
+import { Link, useForm, router } from "@inertiajs/vue3";
 
 const props = defineProps({
     order: Object,
@@ -21,7 +21,15 @@ const submitTracking = () => {
         route("admin.orders.tracking.update", {
             order: props.order.uuid,
             token: props.token,
-        })
+        }),
+        {
+            onSuccess: () => {
+                // Rediriger vers la liste après succès
+                router.visit(
+                    route("admin.orders.index", { token: props.token })
+                );
+            },
+        }
     );
 };
 </script>

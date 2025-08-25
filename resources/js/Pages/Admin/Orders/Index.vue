@@ -75,7 +75,7 @@ const euros = (n) =>
                             </div>
                         </td>
                         <td class="px-4 py-2">
-                            {{ o.order_products_sum_quantity }}
+                            {{ o.items_count }}
                         </td>
                         <td class="px-4 py-2 font-semibold">
                             {{ euros(o.total_price) }} {{ o.currency }}

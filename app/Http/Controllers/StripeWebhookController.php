@@ -63,7 +63,7 @@ class StripeWebhookController extends Controller
 {
     Stripe::setApiKey(config('services.stripe.secret'));
 
-    // 1) Relire la session (pas d'expand shipping_details)
+    // 1) Relire la session (avec shipping_rate)
     try {
         $session = StripeSession::retrieve([
             'id'     => $session->id,
@@ -76,7 +76,7 @@ class StripeWebhookController extends Controller
         ]);
     }
 
-    // 2) Fallback PaymentIntent (montants + adresse via latest_charge)
+    // 2) Fallback PaymentIntent
     $pi = null;
     try {
         if (!empty($session->payment_intent)) {
@@ -92,7 +92,7 @@ class StripeWebhookController extends Controller
         ]);
     }
 
-    // 3) MAJ commande + décrément stock + email (atomique)
+    // 3) MAJ commande + décrément stock + email
     try {
         DB::transaction(function () use ($session, $pi) {
             $refId   = $session->metadata->order_id   ?? null;
@@ -113,7 +113,7 @@ class StripeWebhookController extends Controller
                 return;
             }
 
-            // -- Avant MAJ : savoir si déjà payé
+            // Avant MAJ : savoir si déjà payé
             $wasPaidBefore = $order->payment_status === 'paid';
 
             // Montants
@@ -150,7 +150,7 @@ class StripeWebhookController extends Controller
                 }
             }
 
-            // Adresse (session -> PI -> charge -> customer_details)
+            // Adresse
             $address = $session->shipping_details->address
                 ?? ($pi->shipping->address ?? null)
                 ?? ($pi->latest_charge->shipping->address ?? null)
@@ -169,30 +169,33 @@ class StripeWebhookController extends Controller
             if ($address) {
                 $order->shipping_address_json = json_encode($address, JSON_UNESCAPED_UNICODE);
             }
+
+            // ✅ Stripe est la vérité → on écrase toujours le total payé
             if ($amountTotalCts > 0) {
                 $order->total_price = $totalEuro;
             }
 
             $order->save();
 
-            // Décrément stock (verrou produit)
-            $order->loadMissing('orderProducts.product');
-            
-            foreach ($order->orderProducts as $op) {
-                $product = $op->product()->lockForUpdate()->first();
-                if ($product) {
-                    $newStock = max(0, (int) $product->stock - (int) $op->quantity);
-                    if ($newStock !== (int) $product->stock) {
-                        $product->stock = $newStock;
-                        $product->save();
+            // ✅ Décrément stock uniquement la première fois
+            if (!$wasPaidBefore) {
+                $order->loadMissing('orderProducts.product');
+
+                foreach ($order->orderProducts as $op) {
+                    $product = $op->product()->lockForUpdate()->first();
+                    if ($product) {
+                        $newStock = max(0, (int) $product->stock - (int) $op->quantity);
+                        if ($newStock !== (int) $product->stock) {
+                            $product->stock = $newStock;
+                            $product->save();
+                        }
                     }
                 }
             }
 
-            // Email "commande confirmée" — une seule fois
-            if (!$wasPaidBefore && $order->payment_status === 'paid' && $order->customer_email) {
+            // ✅ Email uniquement une fois
+            if (!$wasPaidBefore && $order->customer_email) {
                 DB::afterCommit(function () use ($order) {
-                    // queue() fonctionne aussi avec QUEUE_CONNECTION=sync (exécution immédiate)
                     Mail::to($order->customer_email)->queue(new OrderPaidMail($order));
                 });
             }
@@ -212,6 +215,7 @@ class StripeWebhookController extends Controller
         ]);
     }
 }
+
 
 
     private function centsToEuro($cents): float

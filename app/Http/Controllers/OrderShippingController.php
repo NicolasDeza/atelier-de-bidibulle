@@ -52,25 +52,35 @@ class OrderShippingController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $orderUuid)
-    {
-        $order = Order::where('uuid', $orderUuid)->firstOrFail();
+    public function update(Request $request, string $orderUuid)
+{
+    $order = Order::where('uuid', $orderUuid)->firstOrFail();
 
-        $data = $request->validate(['tracking_number' => ['required','string','max:255']]);
+    $data = $request->validate([
+        'tracking_number' => ['required','string','max:255'],
+    ]);
 
-        $wasShippedBefore = $order->shipping_status === 'shipped';
+    $wasShippedBefore = $order->shipping_status === 'shipped';
+    $numberChanged = (string)$data['tracking_number'] !== (string)($order->tracking_number ?? '');
 
-        $order->tracking_number = $data['tracking_number'];
-        $order->shipping_status = 'shipped';
-        $order->shipped_at = now();
-        $order->save();
-
-        if (!$wasShippedBefore && $order->customer_email) {
-            Mail::to($order->customer_email)->send(new OrderShippedMail($order));
-        }
-
-        return back()->with('status', 'Suivi enregistré'.(!$wasShippedBefore ? ' et e-mail envoyé.' : '.'));
+    // Maj uniquement des infos d’expédition (⚠️ on ne touche ni aux produits ni au total)
+    $order->tracking_number = $data['tracking_number'];
+    $order->shipping_status = 'shipped';
+    $order->status = 'shipped';                 // <- important pour ton badge
+    if (is_null($order->shipped_at)) {
+        $order->shipped_at = now();            // n’écrase pas si déjà présent
     }
+
+    $order->save();
+
+    // Mail seulement si on vient de passer à expédiée OU si le numéro a changé
+    if ((!$wasShippedBefore || $numberChanged) && $order->customer_email) {
+        Mail::to($order->customer_email)->queue(new OrderShippedMail($order));
+    }
+
+    return back()->with('status', 'Numéro de suivi enregistré' . ((!$wasShippedBefore || $numberChanged) ? ' et e-mail envoyé.' : '.'));
+}
+
 
     /**
      * Remove the specified resource from storage.
