@@ -151,5 +151,5 @@ Route::post('/newsletter/unsubscribe', [NewsletterSubscriberController::class, '
 
 // Service client
 Route::get("/service-client", fn () => Inertia::render('ServiceClient'))->name('service.client');
-Route::get("/service-client", fn () => Inertia::render('ServiceClient'))->name('service.client');
+
 
