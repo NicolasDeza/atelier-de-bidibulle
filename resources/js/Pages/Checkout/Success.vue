@@ -5,10 +5,18 @@ const props = defineProps({
     order: Object,
     shipping: Object,
     address: Object,
+    total: Number,
 });
 
-// ⚠️ Frais Stripe sont en centimes → convertir en €
-const euros = (cts) => ((cts || 0) / 100).toFixed(2);
+// Format montant en euros
+const fmt = (n) =>
+    Number(n ?? 0)
+        .toFixed(2)
+        .replace(".", ",");
+const centsToEuro = (cts) =>
+    Number((cts ?? 0) / 100)
+        .toFixed(2)
+        .replace(".", ",");
 </script>
 
 <template>
@@ -51,7 +59,7 @@ const euros = (cts) => ((cts || 0) / 100).toFixed(2);
             <div class="flex justify-between items-center">
                 <span class="font-semibold text-gray-800">Total payé :</span>
                 <span class="text-gray-900 font-bold">
-                    {{ order?.total_price.toFixed(2) }} {{ order?.currency }}
+                    {{ fmt(total ?? order?.total_price) }} {{ order?.currency }}
                 </span>
             </div>
         </div>
@@ -61,7 +69,7 @@ const euros = (cts) => ((cts || 0) / 100).toFixed(2);
             <div class="font-medium text-gray-800">Livraison</div>
             <div class="text-gray-600">Mode : {{ shipping?.label || "—" }}</div>
             <div class="text-gray-600">
-                Frais : {{ euros(shipping?.amount_total) }} €
+                Frais : {{ centsToEuro(shipping?.amount_total) }} €
             </div>
         </div>
 

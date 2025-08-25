@@ -222,11 +222,13 @@ class CheckoutPaymentController extends Controller
         ?? ($session->payment_intent->latest_charge->shipping->address ?? null)
         ?? ($session->customer_details->address ?? null);
 
+        $total = $session->amount_total ? $session->amount_total / 100 : (float) $order->total_price;
+
     return inertia('Checkout/Success', [
         'order'    => $order->fresh(),
         'shipping' => $shipping,
         'address'  => $address,
-        'total'    => $totalEuro ?? (float) $order->total_price, // valeur sûre pour l’affichage
+        'total'    => $total
     ]);
 }
 

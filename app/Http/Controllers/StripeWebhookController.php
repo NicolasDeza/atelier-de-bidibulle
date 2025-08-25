@@ -156,6 +156,13 @@ class StripeWebhookController extends Controller
                 ?? ($pi->latest_charge->shipping->address ?? null)
                 ?? ($session->customer_details->address ?? null);
 
+            // ✅ Email du client (connecté ou invité)
+            if (empty($order->customer_email)) {
+                $order->customer_email =
+                    $session->customer_details->email
+                    ?? ($pi->charges->data[0]->billing_details->email ?? null);
+            }
+
             // MAJ commande
             $order->payment_status             = 'paid';
             $order->paid_at                    = $order->paid_at ?: now();

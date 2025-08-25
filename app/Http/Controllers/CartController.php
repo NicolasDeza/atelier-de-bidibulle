@@ -92,6 +92,8 @@ class CartController extends Controller
     }
 
 
+
+
     return Inertia::render('Cart/Index', [
         'cartItems'       => $cartItems,
         'total'           => $total,
