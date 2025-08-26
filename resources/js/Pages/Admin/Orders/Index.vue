@@ -20,11 +20,13 @@ const euros = (n) =>
 </script>
 
 <template>
-    <div class="py-8">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="py-4 sm:py-8">
+        <div
+            class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4 sm:space-y-6"
+        >
             <!-- Header avec même style que Products -->
             <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-semibold">Commandes</h1>
+                <h1 class="text-xl sm:text-2xl font-semibold">Commandes</h1>
 
                 <Link
                     :href="route('profile.show')"
@@ -32,7 +34,7 @@ const euros = (n) =>
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        class="h-4 w-4 mr-2"
+                        class="h-4 w-4 mr-1 sm:mr-2"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -44,7 +46,8 @@ const euros = (n) =>
                             d="M15 19l-7-7 7-7"
                         />
                     </svg>
-                    Retour au profil
+                    <span class="hidden sm:inline">Retour au profil</span>
+                    <span class="sm:hidden">Retour</span>
                 </Link>
             </div>
 

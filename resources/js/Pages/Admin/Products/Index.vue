@@ -63,42 +63,50 @@ watch([search, category_id], () => {
 </script>
 
 <template>
-    <div class="py-8">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <div class="flex items-center justify-between mb-4">
+    <div class="py-4 sm:py-8">
+        <div
+            class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4 sm:space-y-6"
+        >
+            <!-- Header responsive -->
+            <div class="space-y-4">
                 <!-- Bouton retour -->
-                <Link
-                    :href="route('profile.show')"
-                    class="inline-flex items-center gap-2 h-9 px-4 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 active:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="h-4 w-4 text-gray-500"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                <div class="flex">
+                    <Link
+                        :href="route('profile.show')"
+                        class="inline-flex items-center gap-2 h-9 px-3 sm:px-4 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 w-fit"
                     >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M15 19l-7-7 7-7"
-                        />
-                    </svg>
-                    Retour au profil
-                </Link>
-            </div>
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-4 w-4 text-gray-500"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M15 19l-7-7 7-7"
+                            />
+                        </svg>
+                        <span class="hidden sm:inline">Retour au profil</span>
+                        <span class="sm:hidden">Retour</span>
+                    </Link>
+                </div>
 
-            <!-- Header -->
-            <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-bold">Produits</h1>
-                <Link
-                    href="/admin/products/create"
-                    class="inline-flex h-9 items-center justify-center rounded-md bg-indigo-600 px-4 text-sm font-medium text-white transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                <!-- Titre et bouton nouveau -->
+                <div
+                    class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
                 >
-                    <PlusIcon class="mr-2 h-4 w-4" />
-                    Nouveau
-                </Link>
+                    <h1 class="text-xl sm:text-2xl font-bold">Produits</h1>
+                    <Link
+                        href="/admin/products/create"
+                        class="inline-flex h-9 items-center justify-center rounded-md bg-indigo-600 px-4 text-sm font-medium text-white transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 w-full sm:w-auto"
+                    >
+                        <PlusIcon class="mr-2 h-4 w-4" />
+                        Nouveau
+                    </Link>
+                </div>
             </div>
 
             <!-- Flash -->
@@ -109,12 +117,12 @@ watch([search, category_id], () => {
                 {{ flash.success }}
             </div>
 
-            <!-- Filtres (sans bouton réinitialiser) -->
+            <!-- Filtres responsive -->
             <div
-                class="rounded-lg bg-white p-4 shadow flex flex-col sm:flex-row sm:items-center gap-3"
+                class="rounded-lg bg-white p-3 sm:p-4 shadow flex flex-col gap-3"
             >
                 <!-- Search -->
-                <div class="relative w-full sm:max-w-xs">
+                <div class="relative w-full">
                     <MagnifyingGlassIcon
                         class="pointer-events-none absolute left-2.5 top-2.5 h-5 w-5 text-gray-400"
                     />

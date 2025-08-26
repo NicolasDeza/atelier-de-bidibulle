@@ -643,7 +643,6 @@ const { goToAllProducts } = useNavigation();
                         class="flex items-center gap-2"
                     >
                         <i class="fa-solid fa-heart text-black text-2xl"></i>
-                        <span>Mes Favoris</span>
                     </Link>
 
                     <!-- Icône Profil -->
