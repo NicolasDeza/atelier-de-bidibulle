@@ -5,7 +5,6 @@ const props = defineProps({
     order: Object,
     shipping: Object,
     address: Object,
-    total: Number,
 });
 
 // Format montant en euros
@@ -59,7 +58,14 @@ const centsToEuro = (cts) =>
             <div class="flex justify-between items-center">
                 <span class="font-semibold text-gray-800">Total payé :</span>
                 <span class="text-gray-900 font-bold">
-                    {{ fmt(total ?? order?.total_price) }} {{ order?.currency }}
+                    <template v-if="order?.total_price > 0">
+                        {{ fmt(order.total_price) }} {{ order?.currency }}
+                    </template>
+                    <template v-else>
+                        <span class="text-gray-500 italic"
+                            >Paiement en cours...</span
+                        >
+                    </template>
                 </span>
             </div>
         </div>
@@ -69,7 +75,12 @@ const centsToEuro = (cts) =>
             <div class="font-medium text-gray-800">Livraison</div>
             <div class="text-gray-600">Mode : {{ shipping?.label || "—" }}</div>
             <div class="text-gray-600">
-                Frais : {{ centsToEuro(shipping?.amount_total) }} €
+                <template v-if="shipping?.amount_total > 0">
+                    Frais : {{ centsToEuro(shipping?.amount_total) }} €
+                </template>
+                <template v-else>
+                    <span class="text-gray-500 italic">Calcul en cours...</span>
+                </template>
             </div>
         </div>
 
