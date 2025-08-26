@@ -30,8 +30,10 @@ const filterByCategory = (categorySlug) => {
 <template>
     <div :class="className">
         <h2 class="text-base font-semibold mb-4">Filtrer par catégorie :</h2>
-        <div class="flex flex-wrap gap-2">
-            <!-- Bouton "Tous les produits" -->
+
+        <!-- ✅ Version Desktop (boutons pills) -->
+        <div class="hidden md:flex flex-wrap gap-2">
+            <!-- Tous les produits -->
             <button
                 @click="filterByCategory('all')"
                 :class="[
@@ -68,6 +70,32 @@ const filterByCategory = (categorySlug) => {
                     {{ category.products_count }}
                 </span>
             </button>
+        </div>
+
+        <!-- ✅ Version Mobile (select dropdown avec placeholder) -->
+        <div class="block md:hidden">
+            <select
+                class="w-full border border-gray-300 rounded-md p-2 text-sm"
+                @change="filterByCategory($event.target.value)"
+                :value="currentCategory"
+            >
+                <!-- Placeholder (désactivé) -->
+                <option disabled value="">-- Choisir une catégorie --</option>
+
+                <!-- Option Tous les produits -->
+                <option value="all">
+                    Tous les produits ({{ totalProducts }})
+                </option>
+
+                <!-- Options catégories -->
+                <option
+                    v-for="category in categories"
+                    :key="category.id"
+                    :value="category.slug"
+                >
+                    {{ category.name }} ({{ category.products_count }})
+                </option>
+            </select>
         </div>
     </div>
 </template>

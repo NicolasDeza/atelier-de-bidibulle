@@ -15,25 +15,22 @@ function formatLabel(label) {
 <template>
     <div
         v-if="links.length > 3"
-        class="flex flex-wrap gap-2 mt-8 justify-center"
+        class="flex flex-wrap gap-1 sm:gap-2 mt-8 justify-center max-w-full overflow-x-auto"
     >
         <template v-for="(link, key) in links" :key="key">
-            <!-- Si le lien a une URL valide -->
             <Link
                 v-if="link.url"
                 :href="link.url"
                 v-html="formatLabel(link.label)"
                 :class="[
-                    'px-3 py-1 border rounded transition',
+                    'px-2 sm:px-3 py-1 border rounded transition text-sm sm:text-base',
                     link.active ? 'bg-black text-white' : 'hover:bg-gray-100',
                 ]"
             />
-
-            <!-- Si le lien n'a PAS d'URL -->
             <span
                 v-else
                 v-html="formatLabel(link.label)"
-                class="px-3 py-1 border rounded text-gray-400 cursor-not-allowed"
+                class="px-2 sm:px-3 py-1 border rounded text-gray-400 cursor-not-allowed text-sm sm:text-base"
             />
         </template>
     </div>

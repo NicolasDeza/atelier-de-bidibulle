@@ -152,4 +152,10 @@ Route::post('/newsletter/unsubscribe', [NewsletterSubscriberController::class, '
 // Service client
 Route::get("/service-client", fn () => Inertia::render('ServiceClient'))->name('service.client');
 
+// À propos
+Route::get('/about', fn () => Inertia::render('About'))->name('about');
+
+// Idées cadeaux
+Route::get('/ideas', fn () => Inertia::render('Ideas'))->name('ideas');
+
 

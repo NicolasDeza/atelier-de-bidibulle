@@ -485,11 +485,12 @@ const { goToAllProducts } = useNavigation();
                         </Link>
                     </li>
                     <li>
-                        <a
-                            href="#"
+                        <Link
+                            :href="route('about')"
                             class="pb-1 border-b-2 border-transparent hover:border-black transition"
-                            >À propos</a
                         >
+                            À propos
+                        </Link>
                     </li>
                 </ul>
 
@@ -622,7 +623,9 @@ const { goToAllProducts } = useNavigation();
                 <li>
                     <Link :href="route('contact')" class="block">Contact</Link>
                 </li>
-                <li><a href="#" class="block">À propos</a></li>
+                <li>
+                    <Link :href="route('about')" class="block">À propos</Link>
+                </li>
 
                 <!-- Icônes côte à côte -->
                 <li class="flex items-center gap-6 py-2">

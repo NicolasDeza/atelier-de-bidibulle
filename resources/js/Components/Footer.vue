@@ -129,11 +129,12 @@ const submitNewsletter = () => {
                         </Link>
                     </li>
                     <li>
-                        <a
-                            href="#"
+                        <Link
+                            :href="route('about')"
                             class="hover:border-b hover:border-black transition"
-                            >À propos</a
                         >
+                            À propos
+                        </Link>
                     </li>
                     <li>
                         <Link
@@ -237,11 +238,12 @@ const submitNewsletter = () => {
                 </h4>
                 <ul class="space-y-2">
                     <li>
-                        <a
-                            href="#"
+                        <Link
+                            :href="route('ideas')"
                             class="hover:border-b hover:border-black transition"
-                            >Idées cadeaux</a
                         >
+                            Idées cadeaux
+                        </Link>
                     </li>
                 </ul>
             </nav>
