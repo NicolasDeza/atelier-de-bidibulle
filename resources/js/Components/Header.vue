@@ -430,31 +430,47 @@ const { goToAllProducts } = useNavigation();
                                 class="hidden group-hover:flex flex-col bg-white shadow-lg z-10 min-w-[200px] border border-gray-300 rounded-md"
                             >
                                 <li>
-                                    <a
-                                        href="#"
+                                    <Link
+                                        :href="
+                                            route('products.index', {
+                                                category: 'cadeaux-naissance',
+                                            })
+                                        "
                                         class="block px-4 py-2 hover:bg-gray-100"
-                                        >Cadeaux de naissance</a
+                                        >Cadeaux de naissance</Link
                                     >
                                 </li>
                                 <li>
-                                    <a
-                                        href="#"
+                                    <Link
+                                        :href="
+                                            route('products.index', {
+                                                category: 'anniversaire',
+                                            })
+                                        "
                                         class="block px-4 py-2 hover:bg-gray-100"
-                                        >Anniversaire</a
+                                        >Anniversaire</Link
                                     >
                                 </li>
                                 <li>
-                                    <a
-                                        href="#"
+                                    <Link
+                                        :href="
+                                            route('products.index', {
+                                                category: 'personnalisable',
+                                            })
+                                        "
                                         class="block px-4 py-2 hover:bg-gray-100"
-                                        >Personnalisable</a
+                                        >Personnalisable</Link
                                     >
                                 </li>
                                 <li>
-                                    <a
-                                        href="#"
+                                    <Link
+                                        :href="
+                                            route('products.index', {
+                                                category: 'decoration-maison',
+                                            })
+                                        "
                                         class="block px-4 py-2 hover:bg-gray-100"
-                                        >Décoration Maison</a
+                                        >Décoration Maison</Link
                                     >
                                 </li>
                             </ul>
@@ -557,21 +573,47 @@ const { goToAllProducts } = useNavigation();
                                 >
                             </li>
                             <li>
-                                <a href="#" class="block py-1"
-                                    >Cadeaux de naissance</a
+                                <Link
+                                    :href="
+                                        route('products.index', {
+                                            category: 'cadeaux-naissance',
+                                        })
+                                    "
+                                    class="block py-1"
+                                    >Cadeaux de naissance</Link
                                 >
                             </li>
                             <li>
-                                <a href="#" class="block py-1">Anniversaire</a>
-                            </li>
-                            <li>
-                                <a href="#" class="block py-1"
-                                    >Personnalisable</a
+                                <Link
+                                    :href="
+                                        route('products.index', {
+                                            category: 'anniversaire',
+                                        })
+                                    "
+                                    class="block py-1"
+                                    >Anniversaire</Link
                                 >
                             </li>
                             <li>
-                                <a href="#" class="block py-1"
-                                    >Décoration Maison</a
+                                <Link
+                                    :href="
+                                        route('products.index', {
+                                            category: 'personnalisable',
+                                        })
+                                    "
+                                    class="block py-1"
+                                    >Personnalisable</Link
+                                >
+                            </li>
+                            <li>
+                                <Link
+                                    :href="
+                                        route('products.index', {
+                                            category: 'decoration-maison',
+                                        })
+                                    "
+                                    class="block py-1"
+                                    >Décoration Maison</Link
                                 >
                             </li>
                         </ul>
