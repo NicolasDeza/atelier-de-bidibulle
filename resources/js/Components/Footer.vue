@@ -88,10 +88,12 @@ const submitNewsletter = () => {
                 transformer vos moments en souvenirs inoubliables.
             </p>
             <div class="flex justify-center md:justify-start gap-4 text-lg">
-                <a href="#" aria-label="Twitter"
+                <!-- <a href="#" aria-label="Twitter"
                     ><i class="fab fa-twitter"></i
-                ></a>
-                <a href="#" aria-label="Facebook"
+                ></a> -->
+                <a
+                    href="https://www.facebook.com/groups/atelierdebidibulle/"
+                    aria-label="Facebook"
                     ><i class="fab fa-facebook-f"></i
                 ></a>
                 <a href="#" aria-label="Instagram"
