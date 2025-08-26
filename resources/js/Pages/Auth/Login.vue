@@ -37,9 +37,15 @@ const submit = () => {
             class="w-full max-w-4xl bg-white shadow-md rounded-xl overflow-hidden grid grid-cols-1 md:grid-cols-2"
         >
             <!-- Colonne gauche (image ou couleur unie) -->
-            <div class="hidden md:block bg-bidibordeaux"></div>
-            <!-- 👉 plus tard tu peux remplacer par une image :
-            <div class="hidden md:block bg-[url('/images/auth-bg.jpg')] bg-cover bg-center"></div> -->
+            <div
+                class="hidden md:flex bg-bidibordeaux items-center justify-center"
+            >
+                <h1 class="text-white text-4xl font-bold text-center">
+                    Atelier de Bidibulle
+                </h1>
+            </div>
+
+            <!-- <div class="hidden md:block bg-[url('/images/auth-bg.jpg')] bg-cover bg-center"></div>  -->
 
             <!-- Colonne droite (formulaire) -->
             <div class="p-8">
@@ -97,22 +103,24 @@ const submit = () => {
                     </div>
 
                     <!-- Actions -->
-                    <div class="flex items-center justify-between mt-6">
-                        <Link
-                            v-if="canResetPassword"
-                            :href="route('password.request')"
-                            class="underline text-sm text-gray-600 hover:text-gray-900"
-                        >
-                            Mot de passe oublié ?
-                        </Link>
-
+                    <div
+                        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mt-6"
+                    >
                         <PrimaryButton
-                            class="bg-bidibordeaux hover:bg-rose-800 active:bg-rose-900 transition-colors"
+                            class="bg-bidibordeaux hover:bg-rose-800 active:bg-rose-900 transition-colors w-full sm:w-auto flex items-center justify-center"
                             :class="{ 'opacity-25': form.processing }"
                             :disabled="form.processing"
                         >
                             Se connecter
                         </PrimaryButton>
+
+                        <Link
+                            v-if="canResetPassword"
+                            :href="route('password.request')"
+                            class="underline text-sm text-gray-600 hover:text-gray-900 text-center sm:text-right"
+                        >
+                            Mot de passe oublié ?
+                        </Link>
                     </div>
                 </form>
             </div>

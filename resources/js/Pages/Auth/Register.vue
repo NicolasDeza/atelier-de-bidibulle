@@ -31,7 +31,13 @@ const submit = () => {
             class="w-full max-w-4xl bg-white shadow-md rounded-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2"
         >
             <!-- Colonne gauche (image ou couleur) -->
-            <div class="hidden lg:block bg-bidibordeaux"></div>
+            <div
+                class="hidden lg:flex bg-bidibordeaux items-center justify-center"
+            >
+                <h1 class="text-white text-4xl font-bold text-center">
+                    Atelier de Bidibulle
+                </h1>
+            </div>
 
             <!-- Colonne droite (formulaire) -->
             <div class="p-4 sm:p-6 lg:p-8">
