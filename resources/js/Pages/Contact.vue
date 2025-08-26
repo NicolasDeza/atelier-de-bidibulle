@@ -122,6 +122,26 @@ const submitForm = () => {
                                     </p>
                                 </div>
                             </div>
+                            <div class="flex items-start space-x-4">
+                                <div class="flex-shrink-0">
+                                    <div
+                                        class="w-10 h-10 bg-bidibordeaux rounded-lg flex items-center justify-center"
+                                    >
+                                        <i
+                                            class="fas fa-home text-white text-sm"
+                                        ></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium text-gray-900">
+                                        Adresse
+                                    </h3>
+                                    <p class="text-gray-600">
+                                        Rue de Ville-en-Hesbaye 4<br />
+                                        4260 Braives
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Réseaux sociaux -->
@@ -131,7 +151,7 @@ const submitForm = () => {
                             </h3>
                             <div class="flex space-x-4">
                                 <a
-                                    href="#"
+                                    href="https://www.facebook.com/groups/atelierdebidibulle/"
                                     class="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center hover:bg-bidibordeaux hover:text-white transition-colors"
                                 >
                                     <i class="fab fa-facebook-f text-sm"></i>
@@ -143,6 +163,18 @@ const submitForm = () => {
                                     <i class="fab fa-instagram text-sm"></i>
                                 </a>
                             </div>
+                        </div>
+                        <div class="mt-8">
+                            <iframe
+                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2513.5321644710156!2d5.105388615746764!3d50.62784107950032!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47c109165c829361%3A0x2248e385ef2f903e!2sRue%20de%20Ville-en-Hesbaye%204%2C%204260%20Braives!5e0!3m2!1sfr!2sbe!4v1692456112123!5m2!1sfr!2sbe"
+                                width="100%"
+                                height="250"
+                                style="border: 0"
+                                allowfullscreen=""
+                                loading="lazy"
+                                referrerpolicy="no-referrer-when-downgrade"
+                                class="rounded-lg shadow"
+                            ></iframe>
                         </div>
                     </div>
                 </div>

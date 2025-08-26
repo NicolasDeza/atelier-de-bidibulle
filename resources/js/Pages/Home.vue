@@ -52,13 +52,15 @@ const props = defineProps({
                 Une collection pensée pour apporter chaleur et personnalité à
                 votre quotidien.
             </p>
-            <Link
-                href="/contact"
+            <a
+                href="https://www.google.com/maps/place/Rue+de+Ville-en-Hesbaye+4,+4260+Braives/@50.627841,5.1053886,17z/data=!3m1!4b1!4m6!3m5!1s0x47c109165c829361:0x2248e385ef2f903e!8m2!3d50.627841!4d5.1079635!16s%2Fg%2F11c13wg80c?entry=ttu"
+                target="_blank"
+                rel="noopener noreferrer"
                 class="w-fit inline-flex items-center border border-black rounded-full px-4 py-2 mt-6 text-sm hover:bg-black hover:text-white transition"
             >
                 <i class="fas fa-map-marker-alt mr-2"></i>
                 Notre localisation
-            </Link>
+            </a>
         </section>
 
         <!-- Section 4 produits en vedette -->
