@@ -189,6 +189,15 @@ const submitTracking = () => {
                             <div class="font-medium text-gray-900">
                                 {{ item.product.name }}
                             </div>
+                            <!-- Personnalisation mobile -->
+                            <div v-if="item.customization" class="text-sm">
+                                <span class="text-gray-600"
+                                    >Personnalisation :</span
+                                >
+                                <span class="ml-1 text-blue-600 font-medium">{{
+                                    item.customization
+                                }}</span>
+                            </div>
                             <div class="flex justify-between text-sm">
                                 <span class="text-gray-600">Quantité:</span>
                                 <span
@@ -255,6 +264,16 @@ const submitTracking = () => {
                                     <td class="px-4 py-3">
                                         <div class="font-medium text-gray-900">
                                             {{ item.product.name }}
+                                        </div>
+                                        <!-- Personnalisation desktop -->
+                                        <div
+                                            v-if="item.customization"
+                                            class="text-sm text-blue-600 mt-1"
+                                        >
+                                            <span class="text-gray-600"
+                                                >Personnalisation :</span
+                                            >
+                                            {{ item.customization }}
                                         </div>
                                     </td>
                                     <td class="px-4 py-3">
