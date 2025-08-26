@@ -61,7 +61,7 @@ const props = defineProps({
             </Link>
         </section>
 
-        <!-- Section 3 produits en vedette -->
+        <!-- Section 4 produits en vedette -->
         <section class="pb-20 white">
             <div
                 class="bg-bidibordeaux text-white py-5 uppercase font-bold text-center mb-8"
@@ -85,10 +85,10 @@ const props = defineProps({
                             class="w-full max-w-[400px] md:max-w-[500px] h-[150px] md:h-[200px] object-cover rounded-lg shadow mx-auto"
                         />
                         <h3 class="mt-4 font-semibold">{{ product.name }}</h3>
-                        <p class="text-sm text-gray-600 min-h-[80px]">
+                        <p class="text-sm text-gray-600 min-h-[70px] mt-2">
                             {{ product.description }}
                         </p>
-                        <p class="mt-auto font-semibold text-black">
+                        <p class="mt-auto mb-2 font-semibold text-black">
                             {{ product.price }} €
                             <span
                                 v-if="product.old_price"
