@@ -87,7 +87,7 @@ const centsToEuro = (cts) =>
                     Frais : {{ centsToEuro(shipping.amount_total) }} €
                 </template>
                 <template v-else-if="shipping.amount_total === 0">
-                    <span class="text-green-600 font-semibold">Gratuit</span>
+                    <span class="font-medium">Frais :Gratuit</span>
                 </template>
             </div>
         </div>
