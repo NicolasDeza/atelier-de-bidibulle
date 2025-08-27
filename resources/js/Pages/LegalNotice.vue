@@ -30,31 +30,26 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
                             Bidibule
                         </li>
                         <li>
-                            <strong>Forme juridique&nbsp;:</strong> [Entreprise
-                            individuelle / SRL / …]
+                            <strong>Forme juridique&nbsp;:</strong> Productions
+                            associées ASB
                         </li>
                         <li>
                             <strong>Numéro d’entreprise (BCE)&nbsp;:</strong>
-                            [BE0xxx.xxx.xxx]
+                            BE0896.755.397
                         </li>
                         <li>
-                            <strong>TVA intracommunautaire&nbsp;:</strong>
-                            [BE0xxx.xxx.xxx]
-                        </li>
-                        <li>
-                            <strong>Adresse du siège&nbsp;:</strong> [Rue, n°,
-                            CP, Ville, Belgique]
+                            <strong>Adresse du siège&nbsp;:</strong> Rue
+                            Coenraerts 72 1060 Bruxelles
                         </li>
                         <li>
                             <strong>Email&nbsp;:</strong>
-                            contact@atelier-bidibule.com
+                            contact@atelierdebidibulle.be
                         </li>
-                        <li><strong>Téléphone&nbsp;:</strong> [numéro]</li>
                         <li>
                             <strong
                                 >Responsable de la publication&nbsp;:</strong
                             >
-                            [Nom, fonction]
+                            Morgane Krafft
                         </li>
                     </ul>
                 </div>
@@ -64,16 +59,16 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
             <section class="mb-8">
                 <h2 class="text-xl font-semibold mb-2">Hébergement</h2>
                 <div class="space-y-2">
+                    <p><strong>Hébergeur&nbsp;:</strong> O2Switch</p>
                     <p>
-                        <strong>Hébergeur&nbsp;:</strong> [Nom de l’hébergeur]
+                        <strong>Adresse&nbsp;:</strong> Chemin des Pardiaux,
+                        63000 Clermont-Ferrand, France
                     </p>
                     <p>
-                        <strong>Adresse&nbsp;:</strong> [Adresse complète de
-                        l’hébergeur]
+                        <strong>Site&nbsp;:</strong>
+                        https://www.o2switch.fr
                     </p>
-                    <p>
-                        <strong>Site / Téléphone&nbsp;:</strong> [URL / numéro]
-                    </p>
+                    <p><strong>Téléphone&nbsp;:</strong> +33 4 44 44 60 40</p>
                 </div>
             </section>
 

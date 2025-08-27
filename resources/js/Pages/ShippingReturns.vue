@@ -71,10 +71,10 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
                         <li>
                             <strong>Contactez-nous :</strong>
                             <a
-                                href="mailto:contact@atelier-bidibulle.com"
+                                href="mailto:contact@atelierdebidibulle.be"
                                 class="underline text-dark-600"
                             >
-                                contact@atelier-bidibulle.com
+                                contact@atelierdebidibulle.be
                             </a>
                         </li>
                         <li>

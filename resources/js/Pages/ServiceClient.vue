@@ -23,9 +23,9 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
                     <p class="text-gray-800">
                         📧
                         <a
-                            href="mailto:contact@atelier-de-bidibule.be"
+                            href="mailto:contact@atelierdebidibulle.be"
                             class="underline hover:no-underline"
-                            >contact@atelier-de-bidibule.be</a
+                            >contact@atelierdebidibulle.be</a
                         >
                     </p>
                 </div>

@@ -17,7 +17,7 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
                 Politique de confidentialité
             </h1>
             <p class="text-sm text-gray-600 mb-8">
-                Dernière mise à jour : [JJ/MM/AAAA]
+                Dernière mise à jour : 27/08/2025
             </p>
 
             <!-- 1. Responsable de traitement -->
@@ -33,22 +33,31 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
                 <ul class="list-disc ml-6">
                     <li>
                         Entreprise :
-                        <strong>[Raison sociale / indépendant]</strong>
+                        <strong>Productions associées ASBL</strong>
                     </li>
-                    <li>
-                        Numéro BCE / TVA : <strong>[BE0xxx.xxx.xxx]</strong>
-                    </li>
+                    <li>Numéro BCE / TVA : <strong>BE0896.755.397</strong></li>
                     <li>
                         Adresse :
-                        <strong>[Rue, n°, CP, Ville, Belgique]</strong>
+                        <strong>Rue Coenraerts 72, 1060 Bruxelles</strong>
                     </li>
                     <li>
                         Contact (RGPD) :
-                        <strong>[email RGPD ou service client]</strong>
+                        <strong>contact@atelierdebidibulle.be</strong>
                     </li>
                     <li>
                         Hébergeur :
-                        <strong>[Nom + adresse de l’hébergeur]</strong>
+                        <strong>O2Switch</strong>
+                    </li>
+                    <li>
+                        Adresse :
+                        <strong
+                            >Chemin des Pardiaux, 63000 Clermont-Ferrand,
+                            France</strong
+                        >
+                    </li>
+                    <li>
+                        Site web :
+                        <strong>https://www.o2switch.fr</strong>
                     </li>
                 </ul>
             </section>
@@ -192,23 +201,12 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
                         <strong>Stripe Payments Europe</strong> : traitement des
                         paiements.
                     </li>
+                    <li><strong>Hébergeur</strong> : O2Switch</li>
                     <li>
-                        <strong>[Hébergeur]</strong> : hébergement du Site et
-                        BDD.
-                    </li>
-                    <li>
-                        <strong
-                            >[Emailing – ex.
-                            MailerSend/Mailgun/Sendinblue]</strong
-                        >
+                        <strong>Brevo</strong>
                         : envoi d’emails.
                     </li>
-                    <li>
-                        <strong>[Outil analytics]</strong> : mesure d’audience.
-                    </li>
-                    <li>
-                        <strong>Transporteurs (ex. Bpost)</strong> : livraison.
-                    </li>
+                    <li><strong>Bpost</strong> : livraison.</li>
                 </ul>
             </section>
 
@@ -236,9 +234,8 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
                         jusqu’à <strong>10 ans</strong> (obligations légales).
                     </li>
                     <li>
-                        <strong>Compte client inactif :</strong>
-                        <strong>[36]</strong> mois puis
-                        suppression/anonymisation.
+                        <strong>Compte client inactif : </strong>
+                        <strong>36</strong> mois puis suppression/anonymisation.
                     </li>
                     <li>
                         <strong>Messages de contact :</strong>
@@ -265,8 +262,9 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
                     échéant).
                 </p>
                 <p class="mt-2">
-                    Exercice des droits : <strong>[email RGPD]</strong> ou
-                    courrier à <strong>[Adresse postale]</strong>. Délai de
+                    Exercice des droits :
+                    <strong>contact@atelierdebidibulle.be</strong> ou courrier à
+                    <strong>Rue Coenraerts 72 1060 Bruxelles</strong>. Délai de
                     réponse : <strong>1 mois</strong> (prolongeable selon
                     complexité). Une preuve d’identité peut être demandée.
                 </p>
@@ -326,10 +324,10 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
                 <p>
                     Pour toute question liée à cette politique ou à vos données
                     :
-                    <!-- <Link :href="route('contact')" class="underline"
+                    <Link :href="route('contact')" class="underline"
                         >Service client</Link
-                    > -->
-                    — <strong>[email RGPD]</strong>.
+                    >
+                    — <strong>contact@atelierdebidibulle.be</strong>.
                 </p>
             </section>
 

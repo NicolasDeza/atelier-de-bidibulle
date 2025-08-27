@@ -18,7 +18,7 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
                 Conditions générales de vente
             </h1>
             <p class="text-sm text-gray-600 mb-8">
-                Dernière mise à jour : [JJ/MM/AAAA]
+                Dernière mise à jour : 27/08/2025
             </p>
 
             <!-- 1. Identification du vendeur -->
@@ -32,22 +32,29 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
                 </p>
                 <ul class="list-disc ml-6 space-y-1">
                     <li>
-                        Entreprise : <strong>[Nom / raison sociale]</strong>
+                        Entreprise : <strong>Productions associées ASBL</strong>
                     </li>
-                    <li>
-                        Numéro BCE / TVA : <strong>[BE0xxx.xxx.xxx]</strong>
-                    </li>
+                    <li>Numéro BCE / TVA : <strong>BE0896.755.397</strong></li>
                     <li>
                         Adresse :
-                        <strong>[Rue, n°, CP, Ville, Belgique]</strong>
+                        <strong>Rue Coenraerts 72, 1060 Bruxelles</strong>
                     </li>
                     <li>
-                        Email : <strong>contact@atelier-bidibulle.com</strong>
+                        Email : <strong>contact@atelierdebidibulle.be</strong>
                     </li>
-                    <li>Téléphone : <strong>[numéro]</strong></li>
                     <li>
                         Hébergeur :
-                        <strong>[Nom + adresse de l'hébergeur]</strong>
+                        <strong>O2Switch</strong>
+                    </li>
+                    <li>
+                        Adresse hébergeur :
+                        <strong
+                            >Chemin des Pardiaux, 63000 Clermont-Ferrand, France
+                        </strong>
+                    </li>
+                    <li>
+                        Site Web :
+                        <strong>https://www.o2switch.fr</strong>
                     </li>
                 </ul>
             </section>
