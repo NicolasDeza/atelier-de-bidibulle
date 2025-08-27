@@ -313,7 +313,7 @@ const { goToAllProducts } = useNavigation();
                     @keydown="handleKeydown($event, true)"
                     @focus="handleFocus(true)"
                     @blur="delayedHideSuggestions"
-                    class="w-full pl-4 pr-10 py-2 text-sm border border-gray-300 rounded-full shadow-sm outline-none"
+                    class="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-full shadow-sm outline-none"
                 />
                 <button
                     @click="handleSearchMobile"

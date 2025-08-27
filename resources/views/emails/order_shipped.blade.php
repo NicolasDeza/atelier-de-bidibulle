@@ -5,18 +5,13 @@ $trackingUrl = $order->tracking_number
 @endphp
 
 @component('mail::message')
-# Votre commande est en route 🚚
+# Votre commande est expédiée ✅
 
-Commande **#{{ $order->uuid }}** expédiée.
+Commande **#{{ $order->uuid }}** a été déposée chez Bpost.
 
-@isset($trackingUrl)
-@component('mail::button', ['url' => $trackingUrl])
-Suivre mon colis
-@endcomponent
-@else
-**Numéro de suivi :** {{ $order->tracking_number ?? '—' }}
-@endisset
+**Bpost prend maintenant le relais** et vous recevrez prochainement un email séparé avec toutes les informations de suivi de votre colis.
 
-Merci pour votre commande 💛
-**Atelier de Bidibulle**
+Merci pour votre confiance 💛
+
+**Atelier de Bidibule**
 @endcomponent

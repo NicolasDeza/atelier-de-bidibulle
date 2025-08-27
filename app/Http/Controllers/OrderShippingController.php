@@ -56,30 +56,35 @@ class OrderShippingController extends Controller
 {
     $order = Order::where('uuid', $orderUuid)->firstOrFail();
 
+    // tracking_number optionnel désormais
     $data = $request->validate([
-        'tracking_number' => ['required','string','max:255'],
+        'tracking_number' => ['nullable','string','max:255'],
     ]);
 
     $wasShippedBefore = $order->shipping_status === 'shipped';
-    $numberChanged = (string)$data['tracking_number'] !== (string)($order->tracking_number ?? '');
+    $numberChanged = isset($data['tracking_number']) &&
+        (string)$data['tracking_number'] !== (string)($order->tracking_number ?? '');
 
-    // Maj uniquement des infos d’expédition (⚠️ on ne touche ni aux produits ni au total)
-    $order->tracking_number = $data['tracking_number'];
+    // Mise à jour expédition
+    $order->tracking_number = $data['tracking_number'] ?? null;
     $order->shipping_status = 'shipped';
-    $order->status = 'shipped';                 // <- important pour ton badge
+    $order->status = 'shipped';
     if (is_null($order->shipped_at)) {
-        $order->shipped_at = now();            // n’écrase pas si déjà présent
+        $order->shipped_at = now();
     }
 
     $order->save();
 
-    // Mail seulement si on vient de passer à expédiée OU si le numéro a changé
+    // Mail seulement si nouvelle expédition OU numéro changé
     if ((!$wasShippedBefore || $numberChanged) && $order->customer_email) {
         Mail::to($order->customer_email)->queue(new OrderShippedMail($order));
     }
 
-    return back()->with('status', 'Numéro de suivi enregistré' . ((!$wasShippedBefore || $numberChanged) ? ' et e-mail envoyé.' : '.'));
+    return redirect()
+        ->route('admin.orders.index', ['token' => $request->token])
+        ->with('success', 'Commande expédiée avec succès !');
 }
+
 
 
     /**

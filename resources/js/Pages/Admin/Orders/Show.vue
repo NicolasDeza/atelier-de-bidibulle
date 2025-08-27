@@ -1,5 +1,7 @@
 <script setup>
-import { Link, useForm, router } from "@inertiajs/vue3";
+import { ref } from "vue";
+import { Link, router } from "@inertiajs/vue3";
+import Modal from "@/Components/Modal.vue";
 
 const props = defineProps({
     order: Object,
@@ -7,31 +9,30 @@ const props = defineProps({
     token: String,
 });
 
-const form = useForm({
-    tracking_number: props.order.tracking_number || "",
-});
+// État pour le modal de confirmation
+const showModal = ref(false);
 
+// Fonction appelée quand l'admin veut expédier
+const markAsShipped = () => {
+    showModal.value = true;
+};
+
+// Fonction appelée pour confirmer l'expédition
+const confirmShipment = () => {
+    showModal.value = false;
+    router.post(
+        route("admin.orders.tracking.update", {
+            order: props.order.uuid,
+            token: props.token,
+        })
+    );
+};
+
+// Utilitaire affichage prix
 const euros = (n) =>
     Number(n || 0)
         .toFixed(2)
         .replace(".", ",");
-
-const submitTracking = () => {
-    form.post(
-        route("admin.orders.tracking.update", {
-            order: props.order.uuid,
-            token: props.token,
-        }),
-        {
-            onSuccess: () => {
-                // Rediriger vers la liste après succès
-                router.visit(
-                    route("admin.orders.index", { token: props.token })
-                );
-            },
-        }
-    );
-};
 </script>
 
 <template>
@@ -70,15 +71,13 @@ const submitTracking = () => {
                 </div>
             </div>
 
-            <!-- Card unique responsive -->
+            <!-- Card détails commande -->
             <div class="rounded-lg bg-white shadow p-4 sm:p-6">
-                <!-- Détails commande -->
                 <div class="mb-6 sm:mb-8">
                     <h2 class="text-lg font-semibold mb-4">
                         Détails de la commande
                     </h2>
                     <div class="space-y-3 text-sm">
-                        <!-- Mobile: Stack vertical, Desktop: 2 colonnes -->
                         <div class="grid grid-cols-1 gap-3">
                             <div
                                 class="flex flex-col sm:flex-row sm:justify-between"
@@ -96,10 +95,10 @@ const submitTracking = () => {
                                 <span class="font-medium text-gray-700"
                                     >Total:</span
                                 >
-                                <span class="font-semibold text-gray-900"
-                                    >{{ euros(order.total_price) }}
-                                    {{ order.currency }}</span
-                                >
+                                <span class="font-semibold text-gray-900">
+                                    {{ euros(order.total_price) }}
+                                    {{ order.currency }}
+                                </span>
                             </div>
                             <div
                                 class="flex flex-col sm:flex-row sm:justify-between"
@@ -109,8 +108,9 @@ const submitTracking = () => {
                                 >
                                 <span
                                     class="inline-flex items-center rounded-md bg-green-100 text-green-700 px-2 py-0.5 text-xs font-medium w-fit"
-                                    >{{ order.payment_status }}</span
                                 >
+                                    {{ order.payment_status }}
+                                </span>
                             </div>
                             <div
                                 class="flex flex-col sm:flex-row sm:justify-between"
@@ -136,49 +136,27 @@ const submitTracking = () => {
                     </div>
                 </div>
 
-                <!-- Suivi -->
+                <!-- Bouton expédition -->
                 <div class="border-t pt-4 sm:pt-6">
                     <h2 class="text-lg font-semibold mb-4">
                         Suivi de la commande
                     </h2>
-                    <form
-                        @submit.prevent="submitTracking"
-                        class="w-full max-w-md"
+                    <button
+                        @click="markAsShipped"
+                        class="inline-flex h-9 items-center justify-center rounded-md bg-green-600 px-4 text-sm font-medium text-white transition hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
                     >
-                        <div class="mb-4">
-                            <label
-                                class="block text-sm font-medium text-gray-700 mb-2"
-                                >Numéro de suivi</label
-                            >
-                            <input
-                                v-model="form.tracking_number"
-                                type="text"
-                                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                placeholder="Entrez le numéro de suivi"
-                            />
-                        </div>
-                        <button
-                            type="submit"
-                            :disabled="form.processing"
-                            class="inline-flex h-9 items-center justify-center rounded-md bg-indigo-600 px-4 text-sm font-medium text-white transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
-                        >
-                            {{
-                                form.processing
-                                    ? "Enregistrement..."
-                                    : "Enregistrer"
-                            }}
-                        </button>
-                    </form>
+                        Valider l’expédition
+                    </button>
                 </div>
             </div>
 
-            <!-- Articles responsive -->
+            <!-- Articles -->
             <div class="rounded-lg bg-white shadow">
                 <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
                     <h2 class="text-lg font-semibold">Articles commandés</h2>
                 </div>
 
-                <!-- Mobile: Cards -->
+                <!-- Mobile: cartes -->
                 <div class="sm:hidden">
                     <div
                         v-for="item in order.order_products"
@@ -189,7 +167,6 @@ const submitTracking = () => {
                             <div class="font-medium text-gray-900">
                                 {{ item.product.name }}
                             </div>
-                            <!-- Personnalisation mobile -->
                             <div v-if="item.customization" class="text-sm">
                                 <span class="text-gray-600"
                                     >Personnalisation :</span
@@ -210,24 +187,25 @@ const submitTracking = () => {
                                 <span class="text-gray-600"
                                     >Prix unitaire:</span
                                 >
-                                <span>
-                                    {{ euros(item.price) }} {{ order.currency }}
-                                </span>
+                                <span
+                                    >{{ euros(item.price) }}
+                                    {{ order.currency }}</span
+                                >
                             </div>
                             <div
                                 class="flex justify-between text-sm font-semibold"
                             >
                                 <span>Total:</span>
-                                <span>
-                                    {{ euros(item.price * item.quantity) }}
-                                    {{ order.currency }}
-                                </span>
+                                <span
+                                    >{{ euros(item.price * item.quantity) }}
+                                    {{ order.currency }}</span
+                                >
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Desktop: Table -->
+                <!-- Desktop: table -->
                 <div class="hidden sm:block">
                     <div class="overflow-x-auto">
                         <table class="min-w-full text-sm">
@@ -265,7 +243,6 @@ const submitTracking = () => {
                                         <div class="font-medium text-gray-900">
                                             {{ item.product.name }}
                                         </div>
-                                        <!-- Personnalisation desktop -->
                                         <div
                                             v-if="item.customization"
                                             class="text-sm text-blue-600 mt-1"
@@ -308,5 +285,33 @@ const submitTracking = () => {
                 </div>
             </div>
         </div>
+
+        <!-- Modal de confirmation -->
+        <Modal :show="showModal" @close="showModal = false">
+            <div class="p-6">
+                <h2 class="text-lg font-semibold mb-4">
+                    Confirmer l’expédition
+                </h2>
+                <p class="text-gray-700 mb-6">
+                    Êtes-vous sûr de vouloir marquer cette commande comme
+                    expédiée ?
+                </p>
+
+                <div class="flex justify-end gap-3">
+                    <button
+                        @click="showModal = false"
+                        class="px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-100"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        @click="confirmShipment"
+                        class="px-4 py-2 rounded-md bg-green-600 text-white hover:bg-green-500"
+                    >
+                        Expédier
+                    </button>
+                </div>
+            </div>
+        </Modal>
     </div>
 </template>
