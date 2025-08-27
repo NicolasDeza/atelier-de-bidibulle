@@ -75,11 +75,19 @@ const centsToEuro = (cts) =>
             <div class="font-medium text-gray-800">Livraison</div>
             <div class="text-gray-600">Mode : {{ shipping?.label || "—" }}</div>
             <div class="text-gray-600">
-                <template v-if="shipping?.amount_total > 0">
-                    Frais : {{ centsToEuro(shipping?.amount_total) }} €
-                </template>
-                <template v-else>
+                <template
+                    v-if="
+                        shipping?.amount_total === null ||
+                        shipping?.amount_total === undefined
+                    "
+                >
                     <span class="text-gray-500 italic">Calcul en cours...</span>
+                </template>
+                <template v-else-if="shipping.amount_total > 0">
+                    Frais : {{ centsToEuro(shipping.amount_total) }} €
+                </template>
+                <template v-else-if="shipping.amount_total === 0">
+                    <span class="text-green-600 font-semibold">Gratuit</span>
                 </template>
             </div>
         </div>

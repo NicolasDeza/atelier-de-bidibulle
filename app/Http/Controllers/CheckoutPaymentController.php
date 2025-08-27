@@ -128,18 +128,11 @@ class CheckoutPaymentController extends Controller
             try {
                 $session = StripeSession::retrieve([
                     'id'     => $sessionId,
-                    // pas d'expand shipping_details
-                    // on veut l'objet payment_intent
                     'expand' => ['shipping_cost.shipping_rate', 'payment_intent'],
                 ]);
 
-                // Mode de livraison (label + montant)
-                $shipping = [
-                    'label'        => $session->shipping_cost->shipping_rate->display_name
-                        ?? $session->shipping_cost->shipping_rate
-                        ?? '—',
-                    'amount_total' => $session->shipping_cost->amount_total ?? 0,
-                ];
+                // ✅ Utilise helper
+                $shipping = $this->buildShippingArray($session);
 
                 // Adresse — 3 sources possibles
                 $address = $this->extractAddressFromSessionOrPI($session);
@@ -176,60 +169,67 @@ class CheckoutPaymentController extends Controller
     /**
      * Page succès (route alternative)
      */
-   public function success(Request $request, string $orderUuid)
-{
-    $sessionId = $request->string('session_id');
-    abort_if(!$sessionId, 404, 'Session Stripe manquante');
+    public function success(Request $request, string $orderUuid)
+    {
+        $sessionId = $request->string('session_id');
+        abort_if(!$sessionId, 404, 'Session Stripe manquante');
 
-    Stripe::setApiKey(config('services.stripe.secret'));
+        Stripe::setApiKey(config('services.stripe.secret'));
 
-    try {
-        $session = StripeSession::retrieve([
-            'id'     => $sessionId,
-            'expand' => ['shipping_cost.shipping_rate', 'payment_intent'],
-        ]);
-    } catch (\Throwable $e) {
-        \Log::error('[Checkout] Session retrieve failed', ['err' => $e->getMessage()]);
-        abort(500, 'Impossible de récupérer la session Stripe');
-    }
+        try {
+            $session = StripeSession::retrieve([
+                'id'     => $sessionId,
+                'expand' => ['shipping_cost.shipping_rate', 'payment_intent'],
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('[Checkout] Session retrieve failed', ['err' => $e->getMessage()]);
+            abort(500, 'Impossible de récupérer la session Stripe');
+        }
 
-    $order = Order::where('uuid', $orderUuid)->firstOrFail();
+        $order = Order::where('uuid', $orderUuid)->firstOrFail();
 
-    // Montant payé côté Stripe (en centimes)
-    $amountTotalCts = $session->amount_total
-        ?? ($session->payment_intent->amount_received ?? null)
-        ?? ($session->payment_intent->amount ?? null);
+        // Montant payé côté Stripe (en centimes)
+        $amountTotalCts = $session->amount_total
+            ?? ($session->payment_intent->amount_received ?? null)
+            ?? ($session->payment_intent->amount ?? null);
 
-    $totalEuro = $amountTotalCts ? round($amountTotalCts / 100, 2) : null;
+        $totalEuro = $amountTotalCts ? round($amountTotalCts / 100, 2) : null;
 
-    // ✅ Fallback sûr : si la DB n’a pas (encore) le bon total, on le met à jour ici
-    if ($totalEuro !== null && (float) $order->total_price !== (float) $totalEuro) {
-        $order->total_price = $totalEuro;
-        // on ne touche PAS au stock / e-mails ici
-        $order->save();
-    }
+        if ($totalEuro !== null && (float) $order->total_price !== (float) $totalEuro) {
+            $order->total_price = $totalEuro;
+            $order->save();
+        }
 
-    // Livraison / adresse (inchangé)
-    $shipping = [
-        'label'        => $session->shipping_cost->shipping_rate->display_name
-            ?? $session->shipping_cost->shipping_rate
-            ?? '—',
-        'amount_total' => $session->shipping_cost->amount_total ?? 0,
-    ];
+        // ✅ Utilise helper
+        $shipping = $this->buildShippingArray($session);
 
-    $address = $session->shipping_details->address
-        ?? ($session->payment_intent->shipping->address ?? null)
-        ?? ($session->payment_intent->latest_charge->shipping->address ?? null)
-        ?? ($session->customer_details->address ?? null);
+        $address = $session->shipping_details->address
+            ?? ($session->payment_intent->shipping->address ?? null)
+            ?? ($session->payment_intent->latest_charge->shipping->address ?? null)
+            ?? ($session->customer_details->address ?? null);
 
         $total = $session->amount_total ? $session->amount_total / 100 : (float) $order->total_price;
 
-    return inertia('Checkout/Success', [
-        'order'    => $order->fresh(),
-        'shipping' => $shipping,
-        'address'  => $address,
-        'total'    => $total
-    ]);
+        return inertia('Checkout/Success', [
+            'order'    => $order->fresh(),
+            'shipping' => $shipping,
+            'address'  => $address,
+            'total'    => $total
+        ]);
+    }
+
+    /**
+     * ✅ Helper normalisation shipping
+     */
+    private function buildShippingArray($session): array
+{
+    return [
+        'label' => $session->shipping_cost->shipping_rate->display_name
+            ?? $session->shipping_cost->shipping_rate
+            ?? 'Remise en main propre',
+        //  centimes, PAS de division par 100
+        'amount_total' => (int) ($session->shipping_cost->amount_total ?? 0),
+    ];
 }
 
 
@@ -238,7 +238,7 @@ class CheckoutPaymentController extends Controller
      */
     private function extractAddressFromSessionOrPI($session): ?array
     {
-        // 1) shipping_details (si Stripe l'a mis)
+        // inchangé (ton code original)
         if (isset($session->shipping_details->address)) {
             return [
                 'name'        => $session->shipping_details->name ?? '',
@@ -250,7 +250,6 @@ class CheckoutPaymentController extends Controller
             ];
         }
 
-        // 2) customer_details.address
         if (isset($session->customer_details->address)) {
             return [
                 'name'        => $session->customer_details->name ?? '',
@@ -262,9 +261,7 @@ class CheckoutPaymentController extends Controller
             ];
         }
 
-        // 3) payment_intent.shipping.address (on a déjà expand payment_intent)
         try {
-            // Si c'est un objet
             if (is_object($session->payment_intent ?? null)) {
                 if (isset($session->payment_intent->shipping->address)) {
                     return [
@@ -277,7 +274,6 @@ class CheckoutPaymentController extends Controller
                     ];
                 }
             }
-            // Si c'est un ID (par prudence)
             if (is_string($session->payment_intent ?? null)) {
                 $pi = PaymentIntent::retrieve([
                     'id'     => $session->payment_intent,
@@ -301,20 +297,13 @@ class CheckoutPaymentController extends Controller
         return null;
     }
 
-    /**
-     * Vide le panier en session
-     */
     private function clearCartSession(): void
     {
         session()->forget(['cart', 'cart_token', 'current_order_uuid']);
     }
 
-    /**
-     * Vide le panier en DB
-     */
     private function clearDbCart(?int $userId, ?string $cartToken): void
     {
-        // Vider les cart_items via le cart_id
         if ($userId) {
             $cart = \App\Models\Cart::where('user_id', $userId)->where('status', 'open')->first();
             if ($cart) {
@@ -323,7 +312,6 @@ class CheckoutPaymentController extends Controller
             }
         }
 
-        // Pour les invités avec session_token
         if ($cartToken) {
             \App\Models\CartItem::where('session_token', $cartToken)->delete();
         }
