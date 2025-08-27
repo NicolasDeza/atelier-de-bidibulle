@@ -94,7 +94,8 @@ class CartCheckoutController extends Controller
             // Ces champs sont en CENTIMES (casts int) → on laisse à 0, Stripe/webhook fixeront le final
             $order->total_price      = 0;
             $order->shipping_total   = 0;
-            $order->ordered_at       = null;
+            // $order->ordered_at       = null;
+            $order->ordered_at = now();
             $order->save();
 
             foreach ($items as $item) {
