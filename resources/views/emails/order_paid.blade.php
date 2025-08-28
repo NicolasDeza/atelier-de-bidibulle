@@ -10,7 +10,9 @@ Votre paiement a bien été confirmé pour la commande **#{{ $order->uuid }}**.
 **Mode de livraison :** {{ $order->shipping_method_label ?? '—' }}
 @endcomponent
 
-@if($order->shipping_address_json)
+@if($order->shipping_method_label === 'Remise en main propre')
+📍 La remise en main propre se fera directement à l’atelier (vous serez recontacté si nécessaire).
+@elseif($order->shipping_address_json)
 @php $addr = json_decode($order->shipping_address_json, true); @endphp
 **Adresse de livraison :**
 {{ $addr['name'] ?? '' }}

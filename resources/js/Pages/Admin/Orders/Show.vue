@@ -66,7 +66,7 @@ const euros = (n) =>
                         Retour
                     </Link>
                     <h1 class="text-xl sm:text-2xl font-semibold break-all">
-                        Commande {{ order.uuid }}
+                        Commande #{{ order.uuid }}
                     </h1>
                 </div>
             </div>
@@ -145,7 +145,7 @@ const euros = (n) =>
                         @click="markAsShipped"
                         class="inline-flex h-9 items-center justify-center rounded-md bg-green-600 px-4 text-sm font-medium text-white transition hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
                     >
-                        Valider l’expédition
+                        Valider la commande
                     </button>
                 </div>
             </div>
