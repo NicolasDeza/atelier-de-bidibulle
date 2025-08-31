@@ -50,7 +50,7 @@ class NewsletterSubscriberController extends Controller
     }
     $subscriber->save();
 
-    // 🔥 Appel direct à l’API Brevo
+    //  Appel direct API Brevo
     $resp = Http::withHeaders([
         'accept' => 'application/json',
         'api-key' => config('services.brevo.key'),

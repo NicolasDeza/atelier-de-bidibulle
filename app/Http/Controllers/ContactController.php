@@ -7,7 +7,15 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\ContactMail;
 
 class ContactController extends Controller
+
 {
+     /**
+     * Traite l'envoi du formulaire de contact :
+     * - valide les champs (nom, email, message)
+     * - protège contre le spam via un champ honeypot
+     * - envoie un email au propriétaire du site
+     */
+
     public function send(Request $request)
 {
     $validated = $request->validate([
@@ -20,7 +28,7 @@ class ContactController extends Controller
         'website.max' => 'Spam détecté.',
     ]);
 
-    // Bot détecté → on répond "ok" sans envoyer
+    // Bot détecté -> on répond "ok" sans envoyer
     if ($request->filled('website')) {
         return back()->with('success', 'Message envoyé.');
     }
@@ -33,6 +41,7 @@ class ContactController extends Controller
                 $validated['message']
             ));
     } catch (\Exception $e) {
+        // Cas erreur SMTP
         return back()->with('error', "Une erreur est survenue. Merci de réessayer plus tard.");
     }
 

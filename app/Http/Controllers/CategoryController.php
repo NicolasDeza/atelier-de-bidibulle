@@ -13,6 +13,7 @@ class CategoryController extends Controller
      */
     public function index()
     {
+        // Récuperer les catégories avec le nombre de produits en stock
         $categories = Category::withCount(['products' => function ($query) {
             $query->where('stock', '>', 0);
         }])->orderBy('name')->get();

@@ -12,14 +12,18 @@ use Inertia\Inertia;
 
 class CheckoutAddressController extends Controller
 {
+    /**
+     * Affiche la page de saisie ou modification de l'adresse de livraison
+     */
     public function edit(Order $order)
     {
+        // On bloque si la commande est déjà en traitement ou terminée
         abort_if(in_array($order->payment_status, ['processing','paid','failed','refunded'], true), 403);
 
-        // plus de country dans les relations
+        // Charger les relations utiles (produits, méthode, adresse + ville)
         $order->load(['shippingAddress.city', 'shippingMethod', 'orderProducts.product']);
 
-        // Prefill simple (sans country)
+        // Préremplir avec la dernière adresse utilisée si dispo (pour les clients connectés)
         $prefill = null;
         if (!auth()->guest() && !$order->shippingAddress) {
             $lastOrder = Order::with('shippingAddress.city')
@@ -45,13 +49,13 @@ class CheckoutAddressController extends Controller
 
         $methodsRaw = ShippingMethod::orderBy('price')->get(['id','name','code','price','free_from']);
 
-        // sous-total (euros) à l’affichage
+        // Calcul du sous-total en euros (affichage UI)
         $subtotal = $order->orderProducts->reduce(
             fn($sum, $op) => $sum + ((float)$op->price * (int)$op->quantity),
             0.0
         );
 
-        // Méthodes avec prix effectif selon free_from (euros pour l’UI)
+        // Préparer les méthodes avec le prix effectif (prise en compte du free_from)
         $methods = $methodsRaw->map(function ($m) use ($subtotal) {
             $m->effective_price = (is_null($m->free_from) || $subtotal < (float)$m->free_from)
                 ? (float)$m->price
@@ -59,7 +63,7 @@ class CheckoutAddressController extends Controller
             return $m;
         });
 
-        // Adresse effective
+        // Adresse déjà enregistrée ou préremplie
         $address = $order->shippingAddress
             ? [
                 'full_name'      => $order->shippingAddress->full_name,
@@ -78,7 +82,7 @@ class CheckoutAddressController extends Controller
                 'uuid'               => $order->uuid,
                 'customer_email'     => $order->customer_email,
                 'shipping_method_id' => $order->shipping_method_id,
-                'shipping_total'     => $order->shipping_total, // cts
+                'shipping_total'     => $order->shipping_total, // en centimes
                 'currency'           => $order->currency ?? 'EUR',
             ],
             'address'   => $address,
@@ -91,15 +95,19 @@ class CheckoutAddressController extends Controller
                 'image'=> $op->product?->image,
             ]),
             'subtotal'  => $subtotal,     // euros pour l’UI
-            'methods'   => $methods,      // euros pour l’UI
+            'methods'   => $methods,      // prix calculés pour l’UI
             'guest'     => auth()->guest(),
         ]);
     }
 
+    /**
+     * Sauvegarde provisoire de l'adresse + méthode choisie (draft)
+     */
     public function update(Request $request, Order $order)
     {
         abort_if(in_array($order->payment_status, ['processing','paid','failed','refunded'], true), 403);
 
+        // Règles de validation (email obligatoire si invité)
         $rules = [
             'shipping_method_id' => ['required','exists:shipping_methods,id'],
             'full_name'          => ['required','string','max:255'],
@@ -115,10 +123,10 @@ class CheckoutAddressController extends Controller
 
         if (!Auth::check()) $order->customer_email = $data['customer_email'];
 
-        // Ville par nom uniquement
+        // Ville par nom (créée si inexistante)
         $city = City::firstOrCreate(['name' => $data['city_name']]);
 
-        // Adresse
+        // Création ou mise à jour de l'adresse liée à la commande
         $addr = $order->shippingAddress ?? new ShippingAddress(['order_id' => $order->id]);
         $addr->fill([
             'full_name'      => $data['full_name'],
@@ -129,23 +137,23 @@ class CheckoutAddressController extends Controller
             'phone_number'   => $data['phone_number'],
         ])->save();
 
-        // Sous-total (euros) pour calcul free_from
+        // Calcul du sous-total en euros
         $order->load('orderProducts');
         $subtotal = $order->orderProducts->reduce(
             fn($sum, $op) => $sum + ((float)$op->price * (int)$op->quantity),
             0.0
         );
 
-        // Méthode + règle free_from (euros) → snapshot brouillon
+        // Calcul du prix de livraison en euros (free_from inclus)
         $method = ShippingMethod::findOrFail($data['shipping_method_id']);
         $shippingEuro = (float)$method->price;
         if ($method->free_from !== null && $subtotal >= (float)$method->free_from) {
             $shippingEuro = 0.0;
         }
 
-        // ⚠️ CONSERVER LES UNITÉS DU MODÈLE: shipping_total est en CENTIMES
+        // Sauvegarde en centimes (draft)
         $order->shipping_method_id = $method->id;
-        $order->shipping_total     = (int) round($shippingEuro * 100); // cts (draft)
+        $order->shipping_total     = (int) round($shippingEuro * 100);
         $order->save();
 
         $request->session()->put('current_order_uuid', $order->uuid);
@@ -153,10 +161,15 @@ class CheckoutAddressController extends Controller
         return back()->with('success', 'Adresse et livraison enregistrées.');
     }
 
+    /**
+     * Finalise l'adresse et la méthode de livraison,
+     * fige les montants et prépare la commande pour le paiement
+     */
     public function finalizeAddressAndShipping(Request $request, Order $order)
     {
         abort_if(in_array($order->payment_status, ['processing','paid','failed','refunded'], true), 403);
 
+        // Règles de validation (mêmes que update)
         $rules = [
             'shipping_method_id' => ['required','exists:shipping_methods,id'],
             'full_name'          => ['required','string','max:255'],
@@ -184,14 +197,14 @@ class CheckoutAddressController extends Controller
             'phone_number'   => $data['phone_number'],
         ])->save();
 
-        // Sous-total en CENTIMES
+        // Sous-total en centimes (plus précis que update)
         $order->load('orderProducts');
         $itemsSubtotalCents = $order->orderProducts->reduce(function ($sum, $op) {
             $unitCents = (int) round(((float)$op->price) * 100);
             return $sum + ($unitCents * (int) $op->quantity);
         }, 0);
 
-        // Shipping (euros → cts) avec free_from
+        // Calcul du prix de livraison en centimes (free_from inclus)
         $method = ShippingMethod::findOrFail($data['shipping_method_id']);
         $shippingEuro = (float) $method->price;
         if ($method->free_from !== null && ($itemsSubtotalCents / 100) >= (float) $method->free_from) {
@@ -199,12 +212,13 @@ class CheckoutAddressController extends Controller
         }
         $shippingCents = (int) round($shippingEuro * 100);
 
-        // Total figé (cts)
+        // Calcul du total final en centimes
         $grandTotalCents = $itemsSubtotalCents + $shippingCents;
 
+        // Sauvegarde finale de la commande (montants figés)
         $order->shipping_method_id = $method->id;
-        $order->shipping_total     = $shippingCents;     // cts
-        $order->total_price        = $grandTotalCents;   // cts (figé)
+        $order->shipping_total     = $shippingCents;
+        $order->total_price        = $grandTotalCents;
         $order->currency           = $order->currency ?: 'EUR';
         $order->payment_method     = 'stripe';
         $order->save();

@@ -20,97 +20,99 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\NewsletterSubscriberController;
 
+// Page d'accueil
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-// Routes pour les produits
+
+// ================== PRODUITS ==================
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/products/{slug}', [ProductController::class, 'show'])->name('products.show');
-Route::middleware(['auth'])->group(function () {
-Route::get('/favoris', [WishlistController::class, 'index'])->name('wishlist.index');
-Route::post('/wishlist/toggle/{productId}', [WishlistController::class, 'toggle'])
-    ->middleware('auth')
-    ->where('productId', '[0-9]+')
-    ->name('wishlist.toggle');
 
+// Favoris (auth requis)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/favoris', [WishlistController::class, 'index'])->name('wishlist.index');
+    Route::post('/wishlist/toggle/{productId}', [WishlistController::class, 'toggle'])
+        ->where('productId', '[0-9]+')
+        ->name('wishlist.toggle');
 });
 
-// Routes pour le panier
+
+// ================== PANIER ==================
 Route::get('/panier', [CartController::class, 'index'])->name('cart.index');
 Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+
 Route::middleware(['auth'])->group(function () {
     Route::put('/cart/update/{cartItem}', [CartController::class, 'update'])->name('cart.update');
     Route::delete('/cart/remove/{cartItem}', [CartController::class, 'destroy'])->name('cart.remove');
-
 });
+
 Route::delete('/cart/clear', [CartController::class, 'clear'])->name('cart.clear');
 
-// PANIER INVITÉ (SESSION)
+// Panier invité (stocké en session)
 Route::put('/panier-session/{key}', [CartController::class, 'updateSession'])->name('cart.session.update');
 Route::delete('/panier-session/{key}', [CartController::class, 'removeSession'])->name('cart.session.remove');
 // Route::delete('/panier-session', [CartController::class, 'clearSession'])->name('cart.session.clear');
 
 
-//! CHECKOUT
-
-// 1) Du panier → créer la commande
+// ================== CHECKOUT ==================
+// 1) Du panier → création de la commande
 Route::post('/cart/checkout', [CartCheckoutController::class, 'createOrderFromCart'])
     ->name('cart.checkout');
 
-// 2) Afficher Stripe Checkout (show = compat avec ton code actuel)
+// 2) Afficher Stripe Checkout
 Route::get('/checkout/payment/{order}', [CheckoutPaymentController::class, 'startAndRedirect'])
     ->name('checkout.payment.show');
 
-// 3) Variante "start" (peut servir si on change le flux)
+// 3) Variante "start" (au cas où on change le flux)
 Route::get('/checkout/payment/start/{order}', [CheckoutPaymentController::class, 'startAndRedirect'])
     ->name('checkout.payment.start');
 
-// 4) Retour après succès ou annulation - CORRIGÉ
+// 4) Retour après succès ou annulation
 Route::get('/checkout/return/{order}', [CheckoutPaymentController::class, 'return'])
     ->name('checkout.payment.return');
 
 
-
-    //! ROUTE AVIS
-// Routes pour les avis
+// ================== AVIS PRODUITS ==================
 Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
 Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
 
 
-// Routes pour les catégories
+// ================== CATÉGORIES ==================
 Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
 Route::get('/categorie/{category}', [CategoryController::class, 'show'])->name('categories.show');
 
 
+// ================== DASHBOARD ==================
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
     Route::get('/dashboard', function () {
-        //  Voir les commandes sur le dashboard
+        // Dernières commandes affichées sur le dashboard
         $orders = \App\Models\Order::with(['orderProducts.product'])
             ->latest()
             ->take(10)
             ->get();
 
         return Inertia::render('Dashboard', [
-    'orders' => $orders->map(fn($order) => [
-        'id' => $order->id,
-        'uuid' => $order->uuid,
-        'payment_status' => $order->payment_status,
-        'total_price' => (float) $order->total_price,
-        'paid_at' => $order->paid_at?->format('d/m/Y H:i'),
-        // 🔥 correction ici
-        'items_count' => $order->orderProducts->sum('quantity'),
-    ])
+            'orders' => $orders->map(fn($order) => [
+                'id' => $order->id,
+                'uuid' => $order->uuid,
+                'payment_status' => $order->payment_status,
+                'total_price' => (float) $order->total_price,
+                'paid_at' => $order->paid_at?->format('d/m/Y H:i'),
+                'items_count' => $order->orderProducts->sum('quantity'),
+            ])
         ]);
     })->name('dashboard');
 });
 
-// Routes ADMIN CRUD
+
+// ================== ADMIN ==================
 Route::middleware(['auth','verified'])->prefix('admin')->name('admin.')->group(function () {
     Route::middleware('is_admin')->group(function () {
-        // Produits (déjà en place)
+        // Produits
         Route::get('/products', [AdminProductController::class, 'index'])->name('products.index');
         Route::get('/products/create', [AdminProductController::class, 'create'])->name('products.create');
         Route::post('/products', [AdminProductController::class, 'store'])->name('products.store');
@@ -118,44 +120,40 @@ Route::middleware(['auth','verified'])->prefix('admin')->name('admin.')->group(f
         Route::put('/products/{product:id}', [AdminProductController::class, 'update'])->name('products.update');
         Route::delete('/products/{product:id}', [AdminProductController::class, 'destroy'])->name('products.destroy');
 
-        //  Commandes
+        // Commandes
         Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
         Route::post('/orders/{order}/tracking', [OrderShippingController::class, 'update'])->name('orders.tracking.update');
     });
 });
 
-// Conditions générales / Livraisons et retours / Politique de confidentialité
+
+// ================== PAGES STATIQUES ==================
 Route::get('/livraison-retours', fn () => Inertia::render('ShippingReturns'))->name('shipping.returns');
 Route::get('/conditions-generales', fn () => Inertia::render('TermsOfService'))->name('terms.conditions');
 Route::get('/politique-confidentialite', fn () => Inertia::render('PrivacyPolicy'))->name('privacy.policy');
 Route::get('/mentions-legales', fn () => Inertia::render('LegalNotice'))->name('legal.notice');
+Route::get('/service-client', fn () => Inertia::render('ServiceClient'))->name('service.client');
+Route::get('/about', fn () => Inertia::render('About'))->name('about');
+Route::get('/ideas', fn () => Inertia::render('Ideas'))->name('ideas');
 
-// Page contact
+
+// ================== CONTACT ==================
 Route::get('/contact', fn () => Inertia::render('Contact'))->name('contact');
 Route::post('/contact', [ContactController::class, 'send'])
-    ->middleware('throttle:6,1') // simple anti-abus : 6 req / minute
+    ->middleware('throttle:6,1') // 6 requêtes / minute max
     ->name('contact.send');
 
+
+// ================== SEARCH ==================
 Route::get('/search/suggestions', [SearchController::class, 'suggestions'])->name('search.suggestions');
 
 
-// Newsletter subscription
+// ================== NEWSLETTER ==================
 Route::post('/newsletter', [NewsletterSubscriberController::class, 'store'])
-    ->middleware('throttle:10,1') // anti-spam basique (10 req / min)
+    ->middleware('throttle:10,1') // max 10 req / minute
     ->name('newsletter.store');
 
 Route::post('/newsletter/unsubscribe', [NewsletterSubscriberController::class, 'unsubscribe'])
     ->middleware('throttle:10,1')
     ->name('newsletter.unsubscribe');
-
-// Service client
-Route::get("/service-client", fn () => Inertia::render('ServiceClient'))->name('service.client');
-
-// À propos
-Route::get('/about', fn () => Inertia::render('About'))->name('about');
-
-// Idées cadeaux
-Route::get('/ideas', fn () => Inertia::render('Ideas'))->name('ideas');
-
-

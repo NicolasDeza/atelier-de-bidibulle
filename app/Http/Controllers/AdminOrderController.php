@@ -84,35 +84,45 @@ class AdminOrderController extends Controller
      * Display the specified resource.
      */
     public function show(Request $request, $orderUuid)
-    {
-        $order = Order::where('uuid', $orderUuid)->firstOrFail();
-        $order->loadMissing('orderProducts.product');
-        $addr = $order->shipping_address_json ? json_decode($order->shipping_address_json, true) : null;
+{
+    // On récupère la commande par son UUID + ses produits associés
+    $order = Order::where('uuid', $orderUuid)->firstOrFail();
+    $order->loadMissing('orderProducts.product');
 
-        return Inertia::render('Admin/Orders/Show', [
-            'order' => [
-                'id' => $order->id,
-                'uuid' => $order->uuid,
-                'customer_email' => $order->customer_email,
-                'currency' => $order->currency,
-                'total_price' => (float) $order->total_price,
-                'shipping_method_label' => $order->shipping_method_label,
-                'shipping_total' => (float) $order->shipping_total,
-                'payment_status' => $order->payment_status,
-                'shipping_status' => $order->shipping_status,
-                'tracking_number' => $order->tracking_number,
-                'paid_at' => optional($order->paid_at)->toDateTimeString(),
-                'shipped_at' => optional($order->shipped_at)->toDateTimeString(),
-                'order_products' => $order->orderProducts->map(fn($op)=>[
-                    'id'=>$op->id,'quantity'=>(int)$op->quantity,'price'=>(float)$op->price,
-                    'product'=>['id'=>$op->product?->id,'name'=>$op->product?->name ?? 'Produit'],
-                    'customization'=>$op->customization,
-                ])->values(),
-            ],
-            'addr'  => $addr,
-            'token' => $request->query('token'),
-        ]);
-    }
+    // Adresse de livraison (stockée en JSON dans la commande)
+    $addr = $order->shipping_address_json ? json_decode($order->shipping_address_json, true) : null;
+
+    // Envoie les données de la commande à la vue Admin/Orders/Show
+    return Inertia::render('Admin/Orders/Show', [
+        'order' => [
+            'id' => $order->id,
+            'uuid' => $order->uuid,
+            'customer_email' => $order->customer_email,
+            'currency' => $order->currency,
+            'total_price' => (float) $order->total_price,
+            'shipping_method_label' => $order->shipping_method_label,
+            'shipping_total' => (float) $order->shipping_total,
+            'payment_status' => $order->payment_status,
+            'shipping_status' => $order->shipping_status,
+            'tracking_number' => $order->tracking_number,
+            'paid_at' => optional($order->paid_at)->toDateTimeString(),
+            'shipped_at' => optional($order->shipped_at)->toDateTimeString(),
+            'order_products' => $order->orderProducts->map(fn($op) => [
+                'id' => $op->id,
+                'quantity' => (int)$op->quantity,
+                'price' => (float)$op->price,
+                'product' => [
+                    'id' => $op->product?->id,
+                    'name' => $op->product?->name ?? 'Produit'
+                ],
+                'customization' => $op->customization,
+            ])->values(),
+        ],
+        'addr'  => $addr,
+        'token' => $request->query('token'),
+    ]);
+}
+
     /**
      * Show the form for editing the specified resource.
      */

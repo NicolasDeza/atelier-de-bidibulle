@@ -12,11 +12,14 @@ use Illuminate\Support\Facades\DB;
 
 class CartCheckoutController extends Controller
 {
+    /**
+     * Crée une commande à partir du panier (BDD si connecté, session si invité)
+     */
     public function createOrderFromCart(Request $request)
     {
         $userId = Auth::id();
 
-        // 1) Récupération des items du panier (user DB ou session invité)
+        // 1) Récupération des items du panier (utilisateur connecté → BDD, invité → session)
         if ($userId) {
             $cart = Cart::with('cartItems.product')
                 ->where('user_id', $userId)
@@ -30,11 +33,11 @@ class CartCheckoutController extends Controller
                 return (object)[
                     'product'       => $ci->product,
                     'quantity'      => (int) $ci->quantity,
-                    'customization' => $ci->customization, // 🔥 REMETTRE LA PERSONNALISATION
+                    'customization' => $ci->customization,
                 ];
             });
         } else {
-            // Invité : lire depuis la session (tolérant à plusieurs formats)
+            // Invité : récupération depuis la session (tolérant à plusieurs formats)
             $raw = session('cart.items', session('cart', []));
             $raw = is_array($raw) ? $raw : (array) $raw;
 
@@ -43,15 +46,19 @@ class CartCheckoutController extends Controller
                     $a = (array) $value;
                     $pid = $a['product_id'] ?? $a['id'] ?? $a['productId'] ?? null;
                     $qty = $a['quantity'] ?? $a['qty'] ?? 1;
-                    $customization = $a['customization'] ?? null; // 🔥 REMETTRE LA PERSONNALISATION
+                    $customization = $a['customization'] ?? null;
                     return $pid ? [[
-                        'product_id' => (int) $pid,
-                        'quantity' => (int) $qty,
-                        'customization' => $customization
+                        'product_id'    => (int) $pid,
+                        'quantity'      => (int) $qty,
+                        'customization' => $customization,
                     ]] : [];
                 }
                 if (!is_numeric($key)) {
-                    return [[ 'product_id' => (int) $key, 'quantity' => (int) $value, 'customization' => null ]];
+                    return [[
+                        'product_id'    => (int) $key,
+                        'quantity'      => (int) $value,
+                        'customization' => null,
+                    ]];
                 }
                 return [];
             })->filter(fn($it) => $it['product_id'] > 0 && $it['quantity'] > 0)
@@ -65,19 +72,19 @@ class CartCheckoutController extends Controller
                 return (object)[
                     'product'       => Product::find($it['product_id']),
                     'quantity'      => (int) $it['quantity'],
-                    'customization' => $it['customization'], // 🔥 REMETTRE LA PERSONNALISATION
+                    'customization' => $it['customization'],
                 ];
             });
         }
 
-        // 2) Vérifs produits existants
+        // 2) Vérifier que tous les produits existent encore
         foreach ($items as $item) {
             if (!$item->product) {
                 return back()->with('error', 'Un produit du panier n’existe plus.');
             }
         }
 
-        // 3) Création de la commande + snapshots produits
+        // 3) Création de la commande + enregistrement des produits liés
         $order = DB::transaction(function () use ($items, $userId) {
             $order = new Order();
             if ($userId) {
@@ -91,33 +98,32 @@ class CartCheckoutController extends Controller
             $order->payment_method   = 'stripe';
             $order->payment_provider = 'stripe';
             $order->currency         = 'EUR';
-            // Ces champs sont en CENTIMES (casts int) → on laisse à 0, Stripe/webhook fixeront le final
+            // Les montants sont en centimes → mis à 0, mis à jour plus tard par Stripe/webhook
             $order->total_price      = 0;
             $order->shipping_total   = 0;
-            // $order->ordered_at       = null;
-            $order->ordered_at = now();
+            $order->ordered_at       = now();
             $order->save();
 
+            // Sauvegarde de chaque produit du panier dans la commande
             foreach ($items as $item) {
                 OrderProduct::create([
                     'order_id'      => $order->id,
                     'product_id'    => $item->product->id,
                     'quantity'      => (int) $item->quantity,
                     'price'         => $item->product->price,
-                    'customization' => $item->customization, // 🔥 REMETTRE LA PERSONNALISATION
+                    'customization' => $item->customization,
                 ]);
             }
 
             return $order;
         });
 
-        // 4) Mémoriser l’UUID pour autoriser l’invité à accéder au paiement
+        // 4) Sauvegarder l’UUID dans la session (permet aux invités d’accéder au paiement)
         $request->session()->put('current_order_uuid', $order->uuid);
 
-        // 5) Démarrer le paiement (la méthode show créera la session Stripe si unpaid)
+        // 5) Redirection vers la page de paiement (Stripe)
         return redirect()->route('checkout.payment.show', $order);
 
-        // Alternative si tu préfères la route "start":
-        // return redirect()->route('checkout.payment.start', $order);
+        // Alternative si besoin : return redirect()->route('checkout.payment.start', $order);
     }
 }

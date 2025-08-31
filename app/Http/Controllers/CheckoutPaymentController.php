@@ -12,7 +12,7 @@ use Stripe\PaymentIntent;
 class CheckoutPaymentController extends Controller
 {
     /**
-     * Démarre la session Stripe et redirige
+     * Crée une session de paiement Stripe et redirige l'utilisateur
      */
     public function startAndRedirect(Request $request, Order $order)
     {
@@ -27,7 +27,7 @@ class CheckoutPaymentController extends Controller
         foreach ($order->orderProducts as $op) {
             $name = optional($op->product)->name ?? 'Produit';
 
-            // Personnalisation dans le nom de ligne
+            // Si le produit est personnalisé, on ajoute la personnalisation dans le nom
             if ($op->customization) {
                 $name .= ' - Personnalisation: ' . $op->customization;
             }
@@ -48,23 +48,26 @@ class CheckoutPaymentController extends Controller
             ];
         }
 
+        // Si aucun produit valide, retour au panier
         if (empty($lineItems)) {
             return redirect()->route('cart.index')->with('error', 'Aucun produit valide.');
         }
 
+        // Frais de livraison Bpost gratuits si total >= 50€
         $bpostCents = $itemsSubtotalCents >= 5000 ? 0 : 590;
 
+        // Création de la session de paiement Stripe
         $session = StripeSession::create(
             [
                 'mode'       => 'payment',
                 'locale'     => 'fr',
                 'line_items' => $lineItems,
 
-                // Collecte d’adresse de livraison
+                // Collecte adresse + téléphone
                 'shipping_address_collection' => ['allowed_countries' => ['FR', 'BE']],
                 'phone_number_collection'     => ['enabled' => true],
 
-                // Deux modes: remise en main propre + Bpost
+                // Modes de livraison : retrait ou Bpost
                 'shipping_options' => [
                     [
                         'shipping_rate_data' => [
@@ -88,10 +91,11 @@ class CheckoutPaymentController extends Controller
 
                 'customer_email' => $order->customer_email,
 
-                // Retour avec session_id pour relecture
+                // Redirection après paiement
                 'success_url'    => route('checkout.payment.return', $order) . '?session_id={CHECKOUT_SESSION_ID}',
                 'cancel_url'     => route('cart.index'),
 
+                // Ajout de métadonnées utiles pour le suivi
                 'metadata'       => [
                     'order_id'   => (string) $order->id,
                     'order_uuid' => (string) $order->uuid,
@@ -103,17 +107,19 @@ class CheckoutPaymentController extends Controller
             ['idempotency_key' => 'order-'.$order->uuid.'-create-session']
         );
 
+        // Sauvegarde de l'ID Stripe de la session dans la commande
         $order->stripe_checkout_session_id = $session->id;
         $order->payment_status             = 'processing';
         $order->save();
 
+        // Redirection vers Stripe (Inertia ou redirection normale)
         return $request->header('X-Inertia')
             ? Inertia::location($session->url)
             : redirect()->away($session->url);
     }
 
     /**
-     * Page de retour après paiement Stripe
+     * Page de retour après paiement Stripe (fallback si le webhook est en retard)
      */
     public function return(Request $request, Order $order)
     {
@@ -131,17 +137,17 @@ class CheckoutPaymentController extends Controller
                     'expand' => ['shipping_cost.shipping_rate', 'payment_intent'],
                 ]);
 
-                // ✅ Utilise helper
+                // Normalisation des infos livraison
                 $shipping = $this->buildShippingArray($session);
 
-                // Adresse — 3 sources possibles
+                // Extraction de l'adresse (plusieurs sources possibles)
                 $address = $this->extractAddressFromSessionOrPI($session);
             } catch (\Throwable $e) {
                 \Log::error('[Checkout] Erreur récupération session Stripe', ['err' => $e->getMessage()]);
             }
         }
 
-        // Sauvegarde de secours (si le webhook n'a pas encore tourné)
+        // Mise à jour commande en "payée" si le webhook n'est pas encore passé
         if ($order->payment_status !== 'paid') {
             $order->payment_status = 'paid';
             $order->paid_at        = $order->paid_at ?: now();
@@ -149,10 +155,11 @@ class CheckoutPaymentController extends Controller
             $order->save();
         }
 
-        // Vider le panier
+        // Nettoyage du panier (session + BDD)
         $this->clearCartSession();
         $this->clearDbCart($order->user_id, $order->cart_token ?? $request->session()->get('cart_token'));
 
+        // Affichage de la page succès
         return Inertia::render('Checkout/Success', [
             'order'    => [
                 'id'          => $order->id,
@@ -167,7 +174,7 @@ class CheckoutPaymentController extends Controller
     }
 
     /**
-     * Page succès (route alternative)
+     * Page succès alternative (mêmes infos mais autre route)
      */
     public function success(Request $request, string $orderUuid)
     {
@@ -188,7 +195,7 @@ class CheckoutPaymentController extends Controller
 
         $order = Order::where('uuid', $orderUuid)->firstOrFail();
 
-        // Montant payé côté Stripe (en centimes)
+        // Vérifie le montant payé côté Stripe et met à jour si besoin
         $amountTotalCts = $session->amount_total
             ?? ($session->payment_intent->amount_received ?? null)
             ?? ($session->payment_intent->amount ?? null);
@@ -200,7 +207,7 @@ class CheckoutPaymentController extends Controller
             $order->save();
         }
 
-        // ✅ Utilise helper
+        // Infos livraison et adresse
         $shipping = $this->buildShippingArray($session);
 
         $address = $session->shipping_details->address
@@ -219,26 +226,25 @@ class CheckoutPaymentController extends Controller
     }
 
     /**
-     * ✅ Helper normalisation shipping
+     * Helper pour normaliser les infos livraison
      */
     private function buildShippingArray($session): array
-{
-    return [
-        'label' => $session->shipping_cost->shipping_rate->display_name
-            ?? $session->shipping_cost->shipping_rate
-            ?? 'Remise en main propre',
-        //  centimes, PAS de division par 100
-        'amount_total' => (int) ($session->shipping_cost->amount_total ?? 0),
-    ];
-}
-
+    {
+        return [
+            'label' => $session->shipping_cost->shipping_rate->display_name
+                ?? $session->shipping_cost->shipping_rate
+                ?? 'Remise en main propre',
+            // montant en centimes (pas de division par 100 ici)
+            'amount_total' => (int) ($session->shipping_cost->amount_total ?? 0),
+        ];
+    }
 
     /**
-     * Fallback robuste pour extraire l'adresse
+     * Extraction robuste de l'adresse depuis session ou PaymentIntent
      */
     private function extractAddressFromSessionOrPI($session): ?array
     {
-        // inchangé (ton code original)
+        // Essaye d'abord via session.shipping_details
         if (isset($session->shipping_details->address)) {
             return [
                 'name'        => $session->shipping_details->name ?? '',
@@ -250,6 +256,7 @@ class CheckoutPaymentController extends Controller
             ];
         }
 
+        // Sinon customer_details
         if (isset($session->customer_details->address)) {
             return [
                 'name'        => $session->customer_details->name ?? '',
@@ -261,6 +268,7 @@ class CheckoutPaymentController extends Controller
             ];
         }
 
+        // Fallback via PaymentIntent (objet ou ID à recharger)
         try {
             if (is_object($session->payment_intent ?? null)) {
                 if (isset($session->payment_intent->shipping->address)) {
@@ -297,11 +305,17 @@ class CheckoutPaymentController extends Controller
         return null;
     }
 
+    /**
+     * Vide le panier en session
+     */
     private function clearCartSession(): void
     {
         session()->forget(['cart', 'cart_token', 'current_order_uuid']);
     }
 
+    /**
+     * Supprime le panier en base (lié à l'user ou au token invité)
+     */
     private function clearDbCart(?int $userId, ?string $cartToken): void
     {
         if ($userId) {
@@ -317,3 +331,4 @@ class CheckoutPaymentController extends Controller
         }
     }
 }
+

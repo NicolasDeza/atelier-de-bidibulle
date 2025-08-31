@@ -8,6 +8,7 @@ const props = defineProps({
     token: String,
 });
 
+// Options de filtre pour la liste des commandes
 const scopeOptions = [
     { value: "to-ship", label: "À préparer" },
     { value: "shipped", label: "Expédiées" },

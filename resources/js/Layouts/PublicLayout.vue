@@ -9,7 +9,7 @@ import CookieBanner from "@/Components/CookieBanner.vue";
 const page = usePage();
 const toast = ref({ msg: null, type: "success" });
 
-// affiche automatiquement flash.success / flash.error
+// affiche automatiquement flash.success / flash.error pour toast
 watch(
     () => page.props.flash,
     (f) => {
@@ -21,6 +21,8 @@ watch(
 </script>
 
 <template>
+    <!-- Layout principal du site public-->
+
     <div class="min-h-screen flex flex-col">
         <Header />
 

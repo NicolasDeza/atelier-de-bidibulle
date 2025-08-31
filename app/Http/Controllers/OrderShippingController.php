@@ -56,7 +56,7 @@ class OrderShippingController extends Controller
 {
     $order = Order::where('uuid', $orderUuid)->firstOrFail();
 
-    // tracking_number optionnel désormais
+    // tracking_number mais optionnel on n'envoie plus de tracking number
     $data = $request->validate([
         'tracking_number' => ['nullable','string','max:255'],
     ]);
@@ -65,7 +65,7 @@ class OrderShippingController extends Controller
     $numberChanged = isset($data['tracking_number']) &&
         (string)$data['tracking_number'] !== (string)($order->tracking_number ?? '');
 
-    // Mise à jour expédition
+    // Mise à jour commande
     $order->tracking_number = $data['tracking_number'] ?? null;
     $order->shipping_status = 'shipped';
     $order->status = 'shipped';

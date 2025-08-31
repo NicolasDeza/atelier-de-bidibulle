@@ -68,6 +68,7 @@ class ProductController extends Controller
      */
 public function show($slug)
 {
+    // Recupération du produit via slug avec catégorie et avis
     $product = Product::with(['category', 'reviews.user'])
         ->where('slug', $slug)
         ->firstOrFail();

@@ -11,96 +11,103 @@ use Inertia\Inertia;
 
 class CartController extends Controller
 {
+    /**
+     * Affiche le panier (utilisateur connecté ou invité via session)
+     */
     public function index()
-{
-    $cartItems = [];
-    $total = 0.0;
+    {
+        $cartItems = [];
+        $total = 0.0;
 
-    if (auth()->check()) {
-        $user = auth()->user();
-        $cart = $user->cart;
+        if (auth()->check()) {
+            // Panier stocké en BDD (utilisateur connecté)
+            $user = auth()->user();
+            $cart = $user->cart;
 
-        if ($cart) {
-            $items = $cart->cartItems()
-                ->with('product')
-                ->get()
-                ->map(function ($item) {
-                    $product = $item->product;
-                    $stock   = (int) ($product->stock ?? 0);
+            if ($cart) {
+                $items = $cart->cartItems()
+                    ->with('product')
+                    ->get()
+                    ->map(function ($item) {
+                        $product = $item->product;
+                        $stock   = (int) ($product->stock ?? 0);
+
+                        return [
+                            'id'            => $item->id,
+                            'product_id'    => $product->id,
+                            'name'          => $product->name,
+                            'price'         => (float) $product->price,
+                            'quantity'      => (int) $item->quantity,
+                            'customization' => $item->customization,
+                            'image_url'     => asset('images/produits/' . $product->image),
+                            'subtotal'      => (float) $product->price * (int) $item->quantity,
+
+                            // Vérif stock disponible
+                            'stock'         => $stock,
+                            'is_available'  => $stock >= (int) $item->quantity,
+                            'max_quantity'  => $stock,
+                        ];
+                    });
+
+                $total = (float) $items->sum('subtotal');
+                $cartItems = $items->values()->all();
+            }
+        } else {
+            // Panier en session (invité)
+            $sessionCart = session()->get('cart', []);
+
+            $items = collect($sessionCart)
+                ->map(function ($item, $key) use (&$sessionCart) {
+                    $product = Product::find($item['product_id'] ?? null);
+
+                    if (!$product) {
+                        unset($sessionCart[$key]);
+                        return null;
+                    }
+
+                    $stock = (int) ($product->stock ?? 0);
+                    $price = (float) $product->price;
+                    $qty   = (int) ($item['quantity'] ?? 1);
+
+                    // Ajuste la quantité si elle dépasse le stock réel
+                    if ($stock >= 0 && $qty > $stock) {
+                        $qty = $stock;
+                        $sessionCart[$key]['quantity'] = $qty;
+                    }
 
                     return [
-                        'id'            => $item->id,
+                        'key'           => $key,
                         'product_id'    => $product->id,
                         'name'          => $product->name,
-                        'price'         => (float) $product->price,
-                        'quantity'      => (int) $item->quantity,
-                        'customization' => $item->customization,
+                        'price'         => $price,
+                        'quantity'      => $qty,
+                        'customization' => $item['customization'] ?? null,
                         'image_url'     => asset('images/produits/' . $product->image),
-                        'subtotal'      => (float) $product->price * (int) $item->quantity,
+                        'subtotal'      => $price * $qty,
 
                         'stock'         => $stock,
-                        'is_available'  => $stock >= (int) $item->quantity,
+                        'is_available'  => $stock >= $qty,
                         'max_quantity'  => $stock,
                     ];
-                });
+                })
+                ->filter();
+
+            session()->put('cart', $sessionCart);
 
             $total = (float) $items->sum('subtotal');
             $cartItems = $items->values()->all();
         }
-    } else {
-        $sessionCart = session()->get('cart', []);
 
-        $items = collect($sessionCart)
-            ->map(function ($item, $key) use (&$sessionCart) {
-                $product = Product::find($item['product_id'] ?? null);
-
-                if (!$product) {
-                    unset($sessionCart[$key]);
-                    return null;
-                }
-
-                $stock = (int) ($product->stock ?? 0);
-                $price = (float) $product->price;
-                $qty   = (int) ($item['quantity'] ?? 1);
-
-                if ($stock >= 0 && $qty > $stock) {
-                    $qty = $stock;
-                    $sessionCart[$key]['quantity'] = $qty;
-                }
-
-                return [
-                    'key'           => $key,
-                    'product_id'    => $product->id,
-                    'name'          => $product->name,
-                    'price'         => $price,
-                    'quantity'      => $qty,
-                    'customization' => $item['customization'] ?? null,
-                    'image_url'     => asset('images/produits/' . $product->image),
-                    'subtotal'      => $price * $qty,
-
-                    'stock'         => $stock,
-                    'is_available'  => $stock >= $qty,
-                    'max_quantity'  => $stock,
-                ];
-            })
-            ->filter();
-
-        session()->put('cart', $sessionCart);
-
-        $total = (float) $items->sum('subtotal');
-        $cartItems = $items->values()->all();
+        return Inertia::render('Cart/Index', [
+            'cartItems'       => $cartItems,
+            'total'           => $total,
+            'isAuthenticated' => auth()->check(),
+        ]);
     }
 
-
-
-
-    return Inertia::render('Cart/Index', [
-        'cartItems'       => $cartItems,
-        'total'           => $total,
-        'isAuthenticated' => auth()->check(),
-    ]);
-}
-
+    /**
+     * Ajoute un produit au panier (BDD si connecté, session sinon)
+     */
     public function add(Request $request)
     {
         $request->validate([
@@ -111,7 +118,7 @@ class CartController extends Controller
 
         $product = Product::findOrFail($request->product_id);
 
-        // Vérif stock au moment de l'ajout
+        // Vérification du stock avant ajout
         if ($product->stock < $request->quantity) {
             return back()->withErrors(['message' => 'Stock insuffisant pour ce produit.']);
         }
@@ -120,7 +127,7 @@ class CartController extends Controller
            ? trim(strip_tags($request->customization))
            : null;
 
-        // Utilisateur connecté → BDD
+        // Utilisateur connecté → stockage en BDD
         if (auth()->check()) {
             $cart = Cart::firstOrCreate(
                 ['user_id' => auth()->id()],
@@ -133,12 +140,14 @@ class CartController extends Controller
                 ->first();
 
             if ($item) {
+                // Incrémente quantité si l'article existe déjà
                 $newQty = $item->quantity + $request->quantity;
                 if ($newQty > $product->stock) {
                     return back()->withErrors(['message' => 'Stock insuffisant pour ajouter cette quantité.']);
                 }
                 $item->update(['quantity' => $newQty]);
             } else {
+                // Sinon, ajoute un nouvel item
                 $cart->cartItems()->create([
                     'product_id'    => $product->id,
                     'quantity'      => $request->quantity,
@@ -149,7 +158,7 @@ class CartController extends Controller
             return back()->with('success', 'Produit ajouté au panier.');
         }
 
-        // Invité → Session
+        // Invité → stockage en session
         $cart = session()->get('cart', []);
         $key  = $product->id . '-' . md5($customization ?? '');
 
@@ -174,6 +183,9 @@ class CartController extends Controller
         return back()->with('success', 'Produit ajouté au panier.');
     }
 
+    /**
+     * Met à jour la quantité d'un article (BDD)
+     */
     public function update(Request $request, CartItem $cartItem)
     {
         $request->validate([
@@ -184,7 +196,7 @@ class CartController extends Controller
             return back()->withErrors(['message' => 'Action non autorisée']);
         }
 
-        //  Vérif stock au moment de la mise à jour
+        // Vérif du stock au moment de la mise à jour
         $stock = (int) ($cartItem->product->stock ?? 0);
         if ($request->quantity > $stock) {
             return back()->withErrors(['message' => "Stock insuffisant (max {$stock})."]);
@@ -195,6 +207,9 @@ class CartController extends Controller
         return back()->with('success', 'Quantité mise à jour');
     }
 
+    /**
+     * Supprime un article du panier (BDD)
+     */
     public function destroy(CartItem $cartItem)
     {
         if ($cartItem->cart->user_id !== auth()->id()) {
@@ -206,6 +221,9 @@ class CartController extends Controller
         return back()->with('success', 'Produit retiré du panier');
     }
 
+    /**
+     * Met à jour la quantité d'un article (Session invité)
+     */
     public function updateSession(Request $request, $key)
     {
         $request->validate([
@@ -215,7 +233,7 @@ class CartController extends Controller
         $cart = session('cart', []);
         if (!isset($cart[$key])) return back();
 
-        //  Vérif stock avec le produit réel
+        // Vérif stock réel
         $product = Product::find($cart[$key]['product_id']);
         $stock   = (int) ($product->stock ?? 0);
 
@@ -229,6 +247,9 @@ class CartController extends Controller
         return back()->with('success', 'Quantité mise à jour');
     }
 
+    /**
+     * Supprime un article du panier (Session invité)
+     */
     public function removeSession($key)
     {
         $cart = session('cart', []);
@@ -241,6 +262,9 @@ class CartController extends Controller
         return back()->with('success', 'Produit retiré du panier');
     }
 
+    /**
+     * Vide complètement le panier (BDD ou Session)
+     */
     public function clear()
     {
         if (auth()->check()) {
@@ -249,7 +273,7 @@ class CartController extends Controller
                 $user->cart->cartItems()->delete();
             }
         } else {
-            // Pour les invités, vider directement la session
+            // Invité → suppression directe de la session
             session()->forget('cart');
         }
 

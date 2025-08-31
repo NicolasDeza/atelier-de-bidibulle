@@ -15,10 +15,11 @@ const showSuggestions = ref(false);
 const showSuggestionsMobile = ref(false);
 const searchTimeout = ref(null);
 
+// Deconnexion utilisateur
 const logout = () => {
     router.post(route("logout"));
 };
-
+// Récuperer les suggestions de recherche
 const fetchSuggestions = async (query, isMobile = false) => {
     if (query.length < 2) {
         if (isMobile) {
@@ -47,7 +48,7 @@ const fetchSuggestions = async (query, isMobile = false) => {
         console.error("Erreur lors de la recherche:", error);
     }
 };
-
+// Rechercher avec délai
 const debouncedSearch = (query, isMobile = false) => {
     if (searchTimeout.value) {
         clearTimeout(searchTimeout.value);
@@ -57,7 +58,7 @@ const debouncedSearch = (query, isMobile = false) => {
         fetchSuggestions(query, isMobile);
     }, 300);
 };
-
+// Masque les suggestions après perte de focus
 const delayedHideSuggestions = () => {
     window.setTimeout(() => {
         hideSuggestions();
@@ -71,7 +72,7 @@ watch(searchQuery, (newQuery) => {
 watch(searchQueryMobile, (newQuery) => {
     debouncedSearch(newQuery, true);
 });
-
+// Lancement de la recherche
 const handleSearch = (query) => {
     hideSuggestions();
     if (query.trim()) {
@@ -89,7 +90,7 @@ const handleSearchMobile = () => {
     handleSearch(searchQueryMobile.value);
     mobileMenuOpen.value = false;
 };
-
+// Gestion clavier (enter, escape)
 const handleKeydown = (event, isMobile = false) => {
     if (event.key === "Enter") {
         event.preventDefault();
@@ -114,7 +115,7 @@ const selectSuggestion = (item, isMobile = false) => {
         mobileMenuOpen.value = false;
     }
 };
-
+// Clique sur une suggestion
 const hideSuggestions = () => {
     showSuggestions.value = false;
     showSuggestionsMobile.value = false;
@@ -269,12 +270,18 @@ const { goToAllProducts } = useNavigation();
                     <i class="fa-solid fa-heart text-lg"></i>
                 </Link>
 
-                <!-- Icône panier -->
+                <!-- Icône panier - visible uniquement en desktop -->
                 <Link
                     :href="route('cart.index')"
-                    class="hidden md:inline text-black hover:text-gray-600 transition"
+                    class="relative text-black hover:text-gray-600 transition hidden md:block"
                 >
                     <i class="fa-solid fa-shopping-cart text-lg"></i>
+                    <span
+                        v-if="page.props.cartCount > 0"
+                        class="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
+                    >
+                        {{ page.props.cartCount }}
+                    </span>
                 </Link>
 
                 <!-- Icône user -->
@@ -630,10 +637,19 @@ const { goToAllProducts } = useNavigation();
                 <!-- Icônes côte à côte -->
                 <li class="flex items-center gap-6 py-2">
                     <!-- Icône Panier -->
-                    <Link :href="route('cart.index')" class="flex items-center">
+                    <Link
+                        :href="route('cart.index')"
+                        class="flex items-center relative"
+                    >
                         <i
                             class="fa-solid fa-shopping-cart text-black text-2xl"
                         ></i>
+                        <span
+                            v-if="page.props.cartCount > 0"
+                            class="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
+                        >
+                            {{ page.props.cartCount }}
+                        </span>
                     </Link>
 
                     <!-- Icône Favoris (si connecté) -->

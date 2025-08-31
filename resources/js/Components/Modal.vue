@@ -20,6 +20,7 @@ const emit = defineEmits(["close"]);
 const dialog = ref();
 const showSlot = ref(props.show);
 
+// Surveille l'état du modal pour ouvrir/fermer
 watch(
     () => props.show,
     () => {
@@ -43,6 +44,7 @@ const close = () => {
     }
 };
 
+// Ferme le modal avec la touche Échap
 const closeOnEscape = (e) => {
     if (e.key === "Escape") {
         e.preventDefault();
@@ -60,13 +62,14 @@ onUnmounted(() => {
     document.body.style.overflow = null;
 });
 
+// Taille max du modal
 const maxWidthClass = computed(() => {
     return {
         sm: "sm:max-w-sm",
         md: "sm:max-w-md",
         lg: "sm:max-w-lg",
         xl: "sm:max-w-xl",
-        "2xl": "sm:max-w-md", // 🔥 Changé de 2xl vers md pour être moins large
+        "2xl": "sm:max-w-md",
     }[props.maxWidth];
 });
 </script>
