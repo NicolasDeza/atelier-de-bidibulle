@@ -303,20 +303,35 @@ const submitNewsletter = () => {
             </ul>
         </section>
 
-        <!-- Copyright -->
+        <!-- Copyright + Crédit -->
         <div
-            class="md:col-span-5 border-t md:pt-8 pt-8 text-center text-sm text-gray-500"
+            class="md:col-span-5 border-t md:pt-8 pt-8 text-center text-sm text-gray-500 space-y-2 md:space-y-0"
         >
-            © {{ currentYear }} Atelier De Bidibulle – Tous droits réservés
-            <span class="mx-2">|</span>
-            <a
-                href="https://nicolasdeza.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-xs text-gray-400 hover:underline"
-            >
-                Site réalisé par Nicolas Deza
-            </a>
+            <!-- Version desktop -->
+            <div class="hidden md:block">
+                © {{ currentYear }} Atelier De Bidibulle – Tous droits réservés
+                <span class="mx-2">|</span>
+                <span class="text-gray-400"
+                    >Site réalisé par
+                    <a href="https://nicolasdeza.com" class="hover:underline"
+                        >Nicolas Deza</a
+                    ></span
+                >
+            </div>
+
+            <!-- Version mobile (stacké, pas la barre droite) -->
+            <div class="block md:hidden">
+                <div>
+                    © {{ currentYear }} Atelier De Bidibulle – Tous droits
+                    réservés
+                </div>
+                <div class="text-gray-400">
+                    Site réalisé par
+                    <a href="https://nicolasdeza.com" class="hover:underline"
+                        >Nicolas Deza</a
+                    >
+                </div>
+            </div>
         </div>
     </footer>
 </template>
