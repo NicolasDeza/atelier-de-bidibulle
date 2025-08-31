@@ -86,9 +86,10 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
                     </li>
                     <li><strong>Newsletter :</strong> email et préférences.</li>
                     <li>
-                        <strong>Navigation / cookies :</strong> identifiants
-                        techniques, journaux serveur, analytics ([Nom outil], IP
-                        anonymisée si activé).
+                        <strong>Navigation / cookies :</strong> uniquement des
+                        cookies essentiels (gestion du panier, authentification
+                        sécurisée, protection contre la fraude). Aucun cookie
+                        publicitaire ou de suivi externe n’est utilisé.
                     </li>
                 </ul>
                 <p class="mt-4 text-sm bg-gray-100 p-3 rounded">
@@ -142,15 +143,7 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
                             6(1)(f))
                         </p>
                     </div>
-                    <div class="border-l-4 border-amber-500 pl-4">
-                        <h3 class="font-semibold">Mesure d’audience</h3>
-                        <p>
-                            <strong>Base :</strong> consentement (cookies non
-                            essentiels), ou exemption si configuré en
-                            conséquence.
-                        </p>
-                    </div>
-                    <div class="border-l-4 border-indigo-500 pl-4">
+                    <div class="border-l-4 border-orange-500 pl-4">
                         <h3 class="font-semibold">
                             Réponse aux demandes via formulaire
                         </h3>
@@ -166,6 +159,10 @@ import PublicLayout from "@/Layouts/PublicLayout.vue";
             <!-- 4. Cookies -->
             <section class="mb-8">
                 <h2 class="text-xl font-semibold mb-2">4. Cookies</h2>
+                <p>
+                    Aucun cookie publicitaire ni de suivi d’audience n’est
+                    utilisé.
+                </p>
                 <p>
                     Notre site utilise uniquement des cookies
                     <strong>nécessaires</strong> à son bon fonctionnement
