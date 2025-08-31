@@ -325,7 +325,7 @@ const submitNewsletter = () => {
                     © {{ currentYear }} Atelier De Bidibulle – Tous droits
                     réservés
                 </div>
-                <div class="text-gray-400">
+                <div class="text-gray-400 mt-2">
                     Site réalisé par
                     <a href="https://nicolasdeza.com" class="hover:underline"
                         >Nicolas Deza</a
