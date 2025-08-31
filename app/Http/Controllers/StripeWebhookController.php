@@ -200,7 +200,7 @@ class StripeWebhookController extends Controller
                 }
             }
 
-            // ✅ Email uniquement une fois
+            //  Email seulement 1 fois
             if (!$wasPaidBefore && $order->customer_email) {
                 DB::afterCommit(function () use ($order) {
                     Mail::to($order->customer_email)->queue(new OrderPaidMail($order));
