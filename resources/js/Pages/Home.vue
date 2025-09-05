@@ -85,6 +85,7 @@ const props = defineProps({
                             :src="product.image_url"
                             :alt="product.name"
                             class="w-full max-w-[400px] md:max-w-[500px] h-[150px] md:h-[200px] object-cover rounded-lg shadow mx-auto"
+                            loading="lazy"
                         />
                         <h3 class="mt-4 font-semibold">{{ product.name }}</h3>
                         <p class="text-sm text-gray-600 min-h-[70px] mt-2">

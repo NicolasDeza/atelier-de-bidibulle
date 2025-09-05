@@ -144,17 +144,24 @@ const { goToAllProducts } = useNavigation();
             </p>
         </div>
 
-        <!-- Ligne 1 : Logo, recherche, icônes ou burger -->
-        <div class="flex items-center justify-between px-10 py-4 border-b">
-            <!-- Logo -->
-            <div class="flex items-center gap-6">
-                <Link :href="route('home')" class="flex items-center gap-6">
+        <!-- Ligne 1 : Logo, recherche, icônes -->
+        <div
+            class="flex items-center justify-between px-6 md:px-10 py-4 border-b"
+        >
+            <!-- Logo + Nom (nom masqué en mobile) -->
+            <div class="flex items-center gap-4 md:gap-6">
+                <Link
+                    :href="route('home')"
+                    class="flex items-center gap-4 md:gap-6"
+                >
                     <img
                         src="/TFE-Logo-Noir.png"
                         alt="Logo Atelier De Bidibulle"
-                        class="h-14 w-14 object-contain"
+                        class="h-12 w-12 md:h-14 md:w-14 object-contain"
                     />
-                    <span class="text-2xl font-bold">Atelier De Bidibulle</span>
+                    <span class="hidden md:inline text-2xl font-bold"
+                        >Atelier De Bidibulle</span
+                    >
                 </Link>
             </div>
 
@@ -189,7 +196,7 @@ const { goToAllProducts } = useNavigation();
                             @click="selectSuggestion(item, false)"
                             class="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                         >
-                            <!-- Affichage pour les catégories -->
+                            <!-- Catégories -->
                             <div
                                 v-if="item.type === 'category'"
                                 class="flex items-center w-full"
@@ -214,7 +221,7 @@ const { goToAllProducts } = useNavigation();
                                 </div>
                             </div>
 
-                            <!-- Affichage pour les produits -->
+                            <!-- Produits -->
                             <template v-else>
                                 <img
                                     :src="item.image_url"
@@ -240,7 +247,7 @@ const { goToAllProducts } = useNavigation();
                         </div>
                     </div>
 
-                    <!-- Aucun résultat trouvé -->
+                    <!-- Aucun résultat -->
                     <div
                         v-else-if="searchQuery.length >= 2"
                         class="p-4 text-center"
@@ -259,23 +266,85 @@ const { goToAllProducts } = useNavigation();
                 </div>
             </div>
 
-            <!-- Icônes & burger -->
-            <div class="flex items-center space-x-4">
-                <!-- Icône favoris -->
+            <!-- Icônes MOBILE + Burger (visibles uniquement en mobile) -->
+            <div class="flex items-center md:hidden">
+                <!-- Groupe d’icônes -->
+                <div class="flex items-center space-x-1 pr-1">
+                    <!-- Favoris (si connecté) -->
+                    <Link
+                        v-if="page.props.auth.user"
+                        :href="route('wishlist.index')"
+                        aria-label="Favoris"
+                        class="p-2 text-black hover:text-gray-600 transition"
+                    >
+                        <i class="fa-solid fa-heart text-lg"></i>
+                    </Link>
+
+                    <!-- Panier -->
+                    <Link
+                        :href="route('cart.index')"
+                        aria-label="Panier"
+                        class="relative inline-grid place-items-center w-9 h-9 p-0 text-black hover:text-gray-600 transition"
+                    >
+                        <i
+                            class="fa-solid fa-shopping-cart text-lg leading-none block"
+                        ></i>
+                        <span
+                            v-if="page.props.cartCount > 0"
+                            class="pointer-events-none absolute top-1 right-2 translate-x-1/3 -translate-y-1/4 bg-red-600 text-white text-[10px] font-bold rounded-full h-4 min-w-[1rem] px-[2px] flex items-center justify-center"
+                        >
+                            {{ page.props.cartCount }}
+                        </span>
+                    </Link>
+
+                    <!-- Profil -->
+                    <Link
+                        v-if="page.props.auth.user"
+                        :href="route('profile.show')"
+                        aria-label="Profil"
+                        class="p-2 text-black hover:text-gray-600 transition"
+                    >
+                        <i class="fa-solid fa-user text-lg"></i>
+                    </Link>
+                    <Link
+                        v-else
+                        :href="route('login')"
+                        aria-label="Connexion"
+                        class="p-2 text-black hover:text-gray-600 transition"
+                    >
+                        <i class="fa-solid fa-user text-lg"></i>
+                    </Link>
+                </div>
+
+                <!-- Burger -->
+                <button
+                    class="p-2 ml-1"
+                    @click="mobileMenuOpen = !mobileMenuOpen"
+                    aria-label="Ouvrir le menu"
+                >
+                    <i class="fa-solid fa-bars text-2xl"></i>
+                </button>
+            </div>
+
+            <!-- Icônes DESKTOP (comme avant) -->
+            <div class="hidden md:flex items-center space-x-4">
+                <!-- Favoris -->
                 <Link
                     v-if="page.props.auth.user"
                     :href="route('wishlist.index')"
-                    class="hidden md:inline text-black hover:text-gray-600 transition"
+                    class="text-black hover:text-gray-600 transition"
+                    aria-label="Favoris"
                 >
-                    <i class="fa-solid fa-heart text-lg"></i>
+                    <i class="fa-solid fa-heart text-xl"></i>
                 </Link>
 
-                <!-- Icône panier - visible uniquement en desktop -->
+                <!-- Panier -->
                 <Link
                     :href="route('cart.index')"
-                    class="relative text-black hover:text-gray-600 transition hidden md:block"
+                    class="relative text-black hover:text-gray-600 transition"
+                    aria-label="Panier"
                 >
-                    <i class="fa-solid fa-shopping-cart text-lg"></i>
+                    <i class="fa-solid fa-shopping-cart text-xl"></i>
                     <span
                         v-if="page.props.cartCount > 0"
                         class="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
@@ -284,34 +353,28 @@ const { goToAllProducts } = useNavigation();
                     </span>
                 </Link>
 
-                <!-- Icône user -->
+                <!-- User -->
                 <Link
                     v-if="page.props.auth.user"
                     :href="route('profile.show')"
-                    class="hidden md:inline text-black hover:text-gray-600 transition"
+                    class="text-black hover:text-gray-600 transition"
+                    aria-label="Profil"
                 >
-                    <i class="fa-solid fa-user text-lg"></i>
+                    <i class="fa-solid fa-user text-xl"></i>
                 </Link>
                 <Link
                     v-else
                     :href="route('login')"
-                    class="hidden md:inline text-black hover:text-gray-600 transition"
+                    class="text-black hover:text-gray-600 transition"
+                    aria-label="Connexion"
                 >
-                    <i class="fa-solid fa-user text-lg"></i>
+                    <i class="fa-solid fa-user text-xl"></i>
                 </Link>
-
-                <!-- Burger mobile -->
-                <button
-                    class="md:hidden"
-                    @click="mobileMenuOpen = !mobileMenuOpen"
-                >
-                    <i class="fa-solid fa-bars text-xl"></i>
-                </button>
             </div>
         </div>
 
         <!-- Recherche mobile -->
-        <div class="block md:hidden px-8 pt-2 pb-4 border-b">
+        <div class="block md:hidden px-6 md:px-8 pt-2 pb-4 border-b">
             <div class="relative">
                 <input
                     v-model="searchQueryMobile"
@@ -334,7 +397,7 @@ const { goToAllProducts } = useNavigation();
                     v-if="showSuggestionsMobile"
                     class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto"
                 >
-                    <!-- Résultats de recherche mobile -->
+                    <!-- Résultats -->
                     <div v-if="suggestionsMobile.length > 0">
                         <div
                             v-for="item in suggestionsMobile"
@@ -342,7 +405,7 @@ const { goToAllProducts } = useNavigation();
                             @click="selectSuggestion(item, true)"
                             class="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                         >
-                            <!-- Affichage pour les catégories -->
+                            <!-- Catégories -->
                             <div
                                 v-if="item.type === 'category'"
                                 class="flex items-center w-full"
@@ -366,7 +429,7 @@ const { goToAllProducts } = useNavigation();
                                 </div>
                             </div>
 
-                            <!-- Affichage pour les produits -->
+                            <!-- Produits -->
                             <template v-else>
                                 <img
                                     :src="item.image_url"
@@ -392,7 +455,7 @@ const { goToAllProducts } = useNavigation();
                         </div>
                     </div>
 
-                    <!-- Aucun résultat trouvé mobile -->
+                    <!-- Aucun résultat -->
                     <div
                         v-else-if="searchQueryMobile.length >= 2"
                         class="p-4 text-center"
@@ -533,17 +596,20 @@ const { goToAllProducts } = useNavigation();
             class="fixed inset-x-0 top-[32px] bottom-0 bg-white z-50 px-6 py-6 flex flex-col gap-6 shadow-lg"
         >
             <div class="flex justify-between items-start">
-                <div class="flex items-center gap-6">
+                <div class="flex items-center gap-4">
                     <img
                         src="/TFE-Logo-Noir.png"
                         alt="Logo"
-                        class="h-14 w-14 object-contain"
+                        class="h-12 w-12 object-contain"
                     />
                     <span class="text-[18px] font-bold"
                         >Atelier De Bidibulle</span
                     >
                 </div>
-                <button @click="mobileMenuOpen = false">
+                <button
+                    @click="mobileMenuOpen = false"
+                    aria-label="Fermer le menu"
+                >
                     <i class="fa-solid fa-xmark text-2xl"></i>
                 </button>
             </div>
@@ -632,50 +698,6 @@ const { goToAllProducts } = useNavigation();
                 </li>
                 <li>
                     <Link :href="route('about')" class="block">À propos</Link>
-                </li>
-
-                <!-- Icônes côte à côte -->
-                <li class="flex items-center gap-6 py-2">
-                    <!-- Icône Panier -->
-                    <Link
-                        :href="route('cart.index')"
-                        class="flex items-center relative"
-                    >
-                        <i
-                            class="fa-solid fa-shopping-cart text-black text-2xl"
-                        ></i>
-                        <span
-                            v-if="page.props.cartCount > 0"
-                            class="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
-                        >
-                            {{ page.props.cartCount }}
-                        </span>
-                    </Link>
-
-                    <!-- Icône Favoris (si connecté) -->
-                    <Link
-                        v-if="page.props.auth.user"
-                        :href="route('wishlist.index')"
-                        class="flex items-center gap-2"
-                    >
-                        <i class="fa-solid fa-heart text-black text-2xl"></i>
-                    </Link>
-
-                    <!-- Icône Profil -->
-                    <Link
-                        v-if="page.props.auth.user"
-                        :href="route('profile.show')"
-                        class="flex items-center"
-                    >
-                        <i class="fa-solid fa-user text-black text-2xl"></i>
-                    </Link>
-                    <Link
-                        v-else
-                        :href="route('login')"
-                        class="flex items-center"
-                    >
-                        <i class="fa-solid fa-user text-black text-2xl"></i>
-                    </Link>
                 </li>
             </ul>
 
