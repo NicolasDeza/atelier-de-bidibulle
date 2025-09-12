@@ -41,22 +41,34 @@ const submitNewsletter = () => {
         <form
             @submit.prevent="submitNewsletter"
             class="max-w-xl mx-auto flex flex-col sm:flex-row items-center gap-4 px-6"
+            aria-label="Formulaire d’abonnement à la newsletter"
         >
+            <!-- Email -->
+            <label for="newsletter-email" class="sr-only">Adresse e-mail</label>
             <input
+                id="newsletter-email"
                 v-model="newsletterForm.email"
                 name="email"
                 type="email"
+                autocomplete="email"
+                inputmode="email"
                 required
                 placeholder="Saisissez votre e-mail"
                 class="w-full sm:flex-1 px-4 py-2 border border-gray-200 rounded shadow-sm outline-none focus:border-gray-400"
             />
+
             <!-- Honeypot: doit rester vide -->
+            <label for="hp-website" class="sr-only"
+                >Laissez ce champ vide</label
+            >
             <input
+                id="hp-website"
                 v-model="newsletterForm.website"
                 name="website"
                 type="text"
                 tabindex="-1"
                 autocomplete="off"
+                aria-hidden="true"
                 class="hidden"
             />
 

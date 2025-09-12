@@ -36,6 +36,36 @@ const pageTitle = computed(() => {
             name="description"
             content="Découvrez tous les produits de l’Atelier de Bidibule : créations personnalisées faites main pour naissances, cadeaux uniques et décorations."
         />
+        <meta name="robots" content="index, follow" />
+
+        <!-- Canonical -->
+        <link rel="canonical" :href="route('products.index')" />
+
+        <!-- Open Graph -->
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Atelier de Bidibulle" />
+        <meta property="og:title" content="Nos créations artisanales" />
+        <meta
+            property="og:description"
+            content="Découvrez toutes nos créations personnalisées faites main : idées cadeaux et déco artisanale."
+        />
+        <meta property="og:url" :content="route('products.index')" />
+        <meta
+            property="og:image"
+            content="https://atelierdebidibulle.be/images/TFE-Banniere-Craft.jpg"
+        />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Nos créations artisanales" />
+        <meta
+            name="twitter:description"
+            content="Découvrez toutes nos créations personnalisées faites main : idées cadeaux et déco artisanale."
+        />
+        <meta
+            name="twitter:image"
+            content="https://atelierdebidibulle.be/images/TFE-Banniere-Craft.jpg"
+        />
     </Head>
 
     <PublicLayout>

@@ -11,7 +11,43 @@ const props = defineProps({
     <Head title="Accueil">
         <meta
             name="description"
-            content="Atelier de Bidibule — créations personnalisées faites main (naissance, cadeaux, déco). Paiement sécurisé, livraison rapide en Belgique/UE."
+            content="Créations personnalisées faites main pour naissances, cadeaux et déco. Paiement sécurisé, livraison rapide en Belgique/UE. Commandez des pièces uniques !"
+        />
+        <meta name="robots" content="index, follow" />
+
+        <!-- Canonical -->
+        <link rel="canonical" href="https://atelierdebidibulle.be/" />
+
+        <!-- Open Graph -->
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Atelier de Bidibulle" />
+        <meta
+            property="og:title"
+            content="Créations personnalisées faites main — Naissance & cadeaux | Atelier de Bidibulle"
+        />
+        <meta
+            property="og:description"
+            content="Cadeaux et déco personnalisés, faits main en Belgique. Livraison rapide en Belgique/UE."
+        />
+        <meta property="og:url" content="https://atelierdebidibulle.be/" />
+        <meta
+            property="og:image"
+            content="https://atelierdebidibulle.be/images/TFE-Banniere-Craft.jpg"
+        />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta
+            name="twitter:title"
+            content="Créations personnalisées faites main — Naissance & cadeaux | Atelier de Bidibulle"
+        />
+        <meta
+            name="twitter:description"
+            content="Cadeaux et déco personnalisés, faits main en Belgique. Livraison rapide en Belgique/UE."
+        />
+        <meta
+            name="twitter:image"
+            content="https://atelierdebidibulle.be/images/TFE-Banniere-Craft.jpg"
         />
     </Head>
 
@@ -25,18 +61,25 @@ const props = defineProps({
                 class="bg-white/70 backdrop-blur-sm px-6 py-4 md:py-8 rounded-lg text-center max-w-md w-full mx-8"
             >
                 <h1
-                    class="text-2xl md:text-4xl font-extrabold font-serif leading-tight"
+                    class="text-xl md:text-4xl font-extrabold font-serif leading-tight"
                 >
-                    Atelier<br />De<br />Bidibulle
+                    <span class="block">Atelier</span>
+                    <span class="block">De</span>
+                    <span class="block">Bidibulle</span>
                 </h1>
-                <p class="mt-3 text-sm md:text-lg text-black">
+                <p class="sr-only">
+                    Atelier de Bidibulle — créations personnalisées faites main
+                </p>
+
+                <p class="mt-3 md:mt-5 text-sm md:text-lg text-black">
                     Transforme chaque instant en souvenir
                 </p>
                 <Link
                     :href="route('products.index')"
+                    aria-label="Découvrir toutes les créations artisanales de l'Atelier de Bidibulle"
                     class="mt-4 md:mt-8 inline-block bg-bidibordeaux hover:bg-rose-800 text-white font-bold px-4 py-2 md:px-6 md:py-4 text-sm rounded"
                 >
-                    DÉCOUVREZ
+                    NOS CRÉATIONS
                 </Link>
             </div>
         </section>
@@ -45,7 +88,7 @@ const props = defineProps({
         <section
             class="py-12 md:py-20 px-2 md:px-0 text-center flex flex-col items-center gap-6"
         >
-            <h2 class="uppercase font-bold text-xl md:text-2xl">
+            <h2 class="font-bold font-serif text-xl md:text-2xl">
                 Fais main, avec amour, pour vous
             </h2>
             <p>

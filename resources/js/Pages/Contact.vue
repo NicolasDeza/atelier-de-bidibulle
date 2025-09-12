@@ -35,13 +35,12 @@ const submitForm = () => {
     <Head title="Contact">
         <meta
             name="description"
-            content="Contactez l'Atelier de Bidibulle pour toute question ou demande d'information sur nos créations artisanales."
+            content="Contactez l’Atelier de Bidibulle en Belgique pour vos créations artisanales personnalisées. Réponse rapide pour toute question ou demande."
         />
         <meta name="robots" content="index, follow" />
     </Head>
-
     <PublicLayout>
-        <div class="max-w-[1440px] mx-auto py-20 px-6">
+        <div class="max-w-[1440px] mx-auto pt-16 pb-20 md:py-20 px-6">
             <!-- En-tête -->
             <div class="text-center mb-12">
                 <h1 class="text-3xl font-bold text-gray-900 mb-4">
@@ -53,7 +52,6 @@ const submitForm = () => {
                     répondrons dans les plus brefs délais.
                 </p>
             </div>
-
             <div class="grid lg:grid-cols-3 gap-12">
                 <!-- Informations de contact -->
                 <div class="lg:col-span-1">
@@ -61,7 +59,6 @@ const submitForm = () => {
                         <h2 class="text-xl font-semibold mb-6 text-gray-900">
                             Nos coordonnées
                         </h2>
-
                         <div class="space-y-6">
                             <div class="flex items-start space-x-4">
                                 <div class="flex-shrink-0">
@@ -82,7 +79,6 @@ const submitForm = () => {
                                     </p>
                                 </div>
                             </div>
-
                             <div class="flex items-start space-x-4">
                                 <div class="flex-shrink-0">
                                     <div
@@ -102,7 +98,6 @@ const submitForm = () => {
                                     </p>
                                 </div>
                             </div>
-
                             <div class="flex items-start space-x-4">
                                 <div class="flex-shrink-0">
                                     <div
@@ -143,7 +138,6 @@ const submitForm = () => {
                                 </div>
                             </div>
                         </div>
-
                         <!-- Réseaux sociaux -->
                         <div class="mt-8 pt-6 border-t border-gray-200">
                             <h3 class="font-medium text-gray-900 mb-4">
@@ -178,7 +172,6 @@ const submitForm = () => {
                         </div>
                     </div>
                 </div>
-
                 <!-- Formulaire -->
                 <div class="lg:col-span-2">
                     <div class="bg-white rounded-2xl shadow-lg p-8">
@@ -204,18 +197,22 @@ const submitForm = () => {
                                 </div>
                             </div>
                         </div>
-
                         <form @submit.prevent="submitForm" class="space-y-6">
                             <!-- Honeypot (caché) -->
-                            <input
-                                v-model="form.website"
-                                type="text"
-                                name="website"
-                                class="hidden"
-                                tabindex="-1"
-                                autocomplete="off"
-                            />
-
+                            <div aria-hidden="true">
+                                <label for="website" class="sr-only"
+                                    >Ne pas remplir ce champ</label
+                                >
+                                <input
+                                    id="website"
+                                    v-model="form.website"
+                                    type="text"
+                                    name="website"
+                                    class="hidden"
+                                    tabindex="-1"
+                                    autocomplete="off"
+                                />
+                            </div>
                             <!-- Nom et Email sur la même ligne -->
                             <div class="grid md:grid-cols-2 gap-6">
                                 <div>
@@ -226,8 +223,10 @@ const submitForm = () => {
                                     />
                                     <TextInput
                                         id="name"
+                                        name="name"
                                         v-model="form.name"
                                         type="text"
+                                        autocomplete="name"
                                         class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-bidibordeaux focus:ring-bidibordeaux focus:ring-opacity-50 transition-colors"
                                         placeholder="Votre nom"
                                         required
@@ -237,7 +236,6 @@ const submitForm = () => {
                                         class="mt-1"
                                     />
                                 </div>
-
                                 <div>
                                     <InputLabel
                                         for="email"
@@ -246,8 +244,10 @@ const submitForm = () => {
                                     />
                                     <TextInput
                                         id="email"
+                                        name="email"
                                         v-model="form.email"
                                         type="email"
+                                        autocomplete="email"
                                         class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-bidibordeaux focus:ring-bidibordeaux focus:ring-opacity-50 transition-colors"
                                         placeholder="votre@email.com"
                                         required
@@ -258,7 +258,6 @@ const submitForm = () => {
                                     />
                                 </div>
                             </div>
-
                             <!-- Message -->
                             <div>
                                 <InputLabel
@@ -268,18 +267,18 @@ const submitForm = () => {
                                 />
                                 <textarea
                                     id="message"
+                                    name="message"
                                     v-model="form.message"
-                                    class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-bidibordeaux focus:ring-bidibordeaux focus:ring-opacity-50 transition-colors resize-none"
+                                    class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors resize-none"
                                     rows="6"
                                     placeholder="Décrivez votre demande, projet ou question..."
                                     required
-                                />
+                                ></textarea>
                                 <InputError
                                     :message="form.errors.message"
                                     class="mt-1"
                                 />
                             </div>
-
                             <!-- Informations supplémentaires -->
                             <div
                                 class="bg-blue-50 border border-blue-200 rounded-lg p-4"
@@ -307,7 +306,6 @@ const submitForm = () => {
                                     </div>
                                 </div>
                             </div>
-
                             <!-- Bouton d'envoi -->
                             <div class="flex justify-end">
                                 <PrimaryButton

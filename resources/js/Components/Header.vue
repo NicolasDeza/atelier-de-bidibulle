@@ -166,10 +166,21 @@ const { goToAllProducts } = useNavigation();
             </div>
 
             <!-- Recherche (desktop) -->
-            <div class="hidden md:block w-full max-w-[18rem] mx-4 relative">
+            <div
+                role="search"
+                class="hidden md:block w-full max-w-[18rem] mx-4 relative"
+            >
+                <label for="search-desktop" class="sr-only"
+                    >Rechercher un produit</label
+                >
                 <input
+                    id="search-desktop"
+                    name="q"
                     v-model="searchQuery"
-                    type="text"
+                    type="search"
+                    autocomplete="search"
+                    enterkeyhint="search"
+                    inputmode="search"
                     placeholder="Rechercher un produit..."
                     @keydown="handleKeydown($event, false)"
                     @focus="handleFocus(false)"
@@ -177,8 +188,10 @@ const { goToAllProducts } = useNavigation();
                     class="w-full pl-4 pr-10 py-2 text-sm border border-gray-300 rounded-full shadow-sm outline-none focus:border-gray-400"
                 />
                 <button
+                    type="button"
                     @click="handleSearchDesktop"
                     class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label="Lancer la recherche"
                 >
                     <i class="fa-solid fa-magnifying-glass"></i>
                 </button>
@@ -318,6 +331,7 @@ const { goToAllProducts } = useNavigation();
 
                 <!-- Burger -->
                 <button
+                    type="button"
                     class="p-2 ml-1"
                     @click="mobileMenuOpen = !mobileMenuOpen"
                     aria-label="Ouvrir le menu"
@@ -375,10 +389,18 @@ const { goToAllProducts } = useNavigation();
 
         <!-- Recherche mobile -->
         <div class="block md:hidden px-6 md:px-8 pt-2 pb-4 border-b">
-            <div class="relative">
+            <div role="search" class="relative">
+                <label for="search-mobile" class="sr-only"
+                    >Rechercher un produit</label
+                >
                 <input
+                    id="search-mobile"
+                    name="q"
                     v-model="searchQueryMobile"
-                    type="text"
+                    type="search"
+                    autocomplete="search"
+                    enterkeyhint="search"
+                    inputmode="search"
                     placeholder="Rechercher un produit..."
                     @keydown="handleKeydown($event, true)"
                     @focus="handleFocus(true)"
@@ -386,8 +408,10 @@ const { goToAllProducts } = useNavigation();
                     class="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-full shadow-sm outline-none"
                 />
                 <button
+                    type="button"
                     @click="handleSearchMobile"
                     class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label="Lancer la recherche"
                 >
                     <i class="fa-solid fa-magnifying-glass"></i>
                 </button>
@@ -464,6 +488,7 @@ const { goToAllProducts } = useNavigation();
                             Aucun résultat trouvé
                         </p>
                         <button
+                            type="button"
                             @click="goToAllProducts"
                             class="bg-bidibordeaux text-white px-4 py-2 rounded-md text-sm hover:bg-opacity-90 transition-colors"
                         >
@@ -568,6 +593,7 @@ const { goToAllProducts } = useNavigation();
                 <div class="flex space-x-2" v-if="page.props.auth.user">
                     <button
                         @click="logout"
+                        type="button"
                         class="border border-black text-sm px-4 py-2 rounded hover:bg-gray-100 transition"
                     >
                         Déconnexion
@@ -608,6 +634,7 @@ const { goToAllProducts } = useNavigation();
                 </div>
                 <button
                     @click="mobileMenuOpen = false"
+                    type="button"
                     aria-label="Fermer le menu"
                 >
                     <i class="fa-solid fa-xmark text-2xl"></i>
@@ -622,6 +649,7 @@ const { goToAllProducts } = useNavigation();
                 <li>
                     <div>
                         <button
+                            type="button"
                             class="flex items-center justify-between w-full"
                             @click="
                                 mobileCategoriesOpen = !mobileCategoriesOpen
@@ -706,6 +734,7 @@ const { goToAllProducts } = useNavigation();
                 <template v-if="page.props.auth.user">
                     <button
                         @click="logout"
+                        type="button"
                         class="flex-1 border border-black px-4 py-2 text-sm rounded text-center"
                     >
                         Déconnexion

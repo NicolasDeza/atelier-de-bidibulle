@@ -16,6 +16,7 @@ export default {
         extend: {
             fontFamily: {
                 sans: ["Roboto", ...defaultTheme.fontFamily.sans],
+                serif: ["Playfair Display", ...defaultTheme.fontFamily.serif],
             },
             colors: {
                 bidibordeaux: {
