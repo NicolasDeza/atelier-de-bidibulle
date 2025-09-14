@@ -1,0 +1,20 @@
+*
+!.gitignore
+
+# Laravel
+/vendor
+/node_modules
+/public/storage
+/storage/*.key
+.env
+.env.*
+/bootstrap/cache
+.phpunit.result.cache
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log
+yarn-error.log
