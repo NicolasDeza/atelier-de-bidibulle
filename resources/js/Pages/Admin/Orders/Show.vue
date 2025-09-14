@@ -33,6 +33,23 @@ const euros = (n) =>
     Number(n || 0)
         .toFixed(2)
         .replace(".", ",");
+
+// Traduction de bd
+
+const paymentLabel = (status) => {
+    switch (status) {
+        case "paid":
+            return "Payé";
+        case "unpaid":
+            return "Non payé";
+        case "pending":
+            return "En attente";
+        case "refunded":
+            return "Remboursé";
+        default:
+            return status;
+    }
+};
 </script>
 
 <template>
@@ -109,7 +126,7 @@ const euros = (n) =>
                                 <span
                                     class="inline-flex items-center rounded-md bg-green-100 text-green-700 px-2 py-0.5 text-xs font-medium w-fit"
                                 >
-                                    {{ order.payment_status }}
+                                    {{ paymentLabel(order.payment_status) }}
                                 </span>
                             </div>
                             <div
