@@ -11,27 +11,23 @@ const props = defineProps({
 
 const scrollRef = ref(null);
 
-// Affichage des boutons ou non
-const showArrows = computed(() => {
-    return props.products.length > 4;
-});
+const showArrows = computed(() => props.products.length > 4);
 
 const scrollLeft = () => {
     scrollRef.value?.scrollBy({ left: -300, behavior: "smooth" });
 };
-
 const scrollRight = () => {
     scrollRef.value?.scrollBy({ left: 300, behavior: "smooth" });
 };
 </script>
-s
+
 <template>
     <section v-if="products.length" class="mt-16">
         <div class="max-w-[1440px] mx-auto px-4">
             <div class="flex items-center justify-between mb-6">
                 <h3 class="text-2xl font-bold">Vous pourriez aussi aimer</h3>
 
-                <!-- Bouton cachés si moons de 4 produits -->
+                <!-- Flèches cachées si < 5 produits -->
                 <div v-if="showArrows" class="hidden md:flex gap-2">
                     <button
                         aria-label="Faire défiler vers la gauche"
@@ -40,7 +36,6 @@ s
                     >
                         ←
                     </button>
-
                     <button
                         aria-label="Faire défiler vers la droite"
                         @click="scrollRight"
@@ -59,7 +54,7 @@ s
                 <div
                     v-for="product in products"
                     :key="product.id"
-                    class="min-w-[220px] sm:min-w-[240px] md:min-w-[260px] lg:min-w-[280px] flex-shrink-0 snap-start bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+                    class="w-[85%] md:w-[260px] lg:w-[280px] shrink-0 snap-start bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                 >
                     <Link
                         :href="route('products.show', product.slug)"
@@ -68,7 +63,7 @@ s
                         <img
                             :src="product.image_url"
                             :alt="product.name"
-                            class="w-full h-52 object-cover"
+                            class="w-full h-44 sm:h-48 md:h-52 object-cover"
                         />
                         <div class="p-4">
                             <h4
@@ -94,7 +89,7 @@ s
 </template>
 
 <style scoped>
-/*  Masquer la scrollbar sur Chrome/Firefox */
+/* Masquer la scrollbar sur Chrome/Firefox */
 .no-scrollbar::-webkit-scrollbar {
     display: none;
 }
